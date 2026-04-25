@@ -9,6 +9,7 @@
 
 DROP TABLE IF EXISTS ubicaciones CASCADE;
 DROP TABLE IF EXISTS historial_medico CASCADE;
+DROP TABLE IF EXISTS mascotas CASCADE;
 DROP TABLE IF EXISTS familiares CASCADE;
 DROP TABLE IF EXISTS usuarios CASCADE;
 
@@ -59,6 +60,32 @@ CREATE TABLE familiares (
     creado_en    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX ix_familiares_usuario ON familiares(usuario_id);
+
+-- --------------------------------------------------------
+--  MASCOTAS
+--  1 usuario → N mascotas. Se pueden marcar como perdidas
+--  para mostrarlas en una vista pública.
+-- --------------------------------------------------------
+CREATE TABLE mascotas (
+    id               SERIAL PRIMARY KEY,
+    usuario_id       INTEGER      NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    nombre           VARCHAR(80)  NOT NULL,
+    especie          VARCHAR(20)  NOT NULL,
+    raza             VARCHAR(60),
+    color            VARCHAR(40),
+    edad_anios       SMALLINT,
+    foto             VARCHAR(255),
+    microchip        VARCHAR(40),
+    perdida          BOOLEAN      NOT NULL DEFAULT FALSE,
+    mensaje_perdida  TEXT,
+    creado_en        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_mascotas_usuario ON mascotas(usuario_id);
+
+CREATE TRIGGER trg_mascotas_actualizado
+    BEFORE UPDATE ON mascotas
+    FOR EACH ROW EXECUTE FUNCTION trg_actualizado_en();
 
 -- --------------------------------------------------------
 --  HISTORIAL MÉDICO

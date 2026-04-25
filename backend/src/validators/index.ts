@@ -49,6 +49,34 @@ export const validarFamiliarParcial = [
   body('relacion') .optional().trim().isLength({ min: 1, max: 40 }),
 ];
 
+const ESPECIES_MASCOTA = ['perro', 'gato', 'otro'];
+
+export const validarMascota = [
+  body('nombre')          .trim().notEmpty().isLength({ max: 80 }),
+  body('especie')         .trim().notEmpty().isIn(ESPECIES_MASCOTA)
+                          .withMessage('Especie debe ser perro, gato u otro'),
+  body('raza')            .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 60 }),
+  body('color')           .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 40 }),
+  body('edad_anios')      .optional({ nullable: true }).isInt({ min: 0, max: 60 }),
+  body('foto')            .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 255 }),
+  body('microchip')       .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 40 }),
+  body('perdida')         .optional().isBoolean(),
+  body('mensaje_perdida') .optional({ nullable: true }).isString(),
+];
+
+export const validarMascotaParcial = [
+  body('nombre')          .optional().trim().isLength({ min: 1, max: 80 }),
+  body('especie')         .optional().trim().isIn(ESPECIES_MASCOTA)
+                          .withMessage('Especie debe ser perro, gato u otro'),
+  body('raza')            .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 60 }),
+  body('color')           .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 40 }),
+  body('edad_anios')      .optional({ nullable: true }).isInt({ min: 0, max: 60 }),
+  body('foto')            .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 255 }),
+  body('microchip')       .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 40 }),
+  body('perdida')         .optional().isBoolean(),
+  body('mensaje_perdida') .optional({ nullable: true }).isString(),
+];
+
 export const validarHistorial = [
   body('alergias')        .optional({ nullable: true }).isString(),
   body('enfermedades')    .optional({ nullable: true }).isString(),

@@ -22,6 +22,8 @@ tags:
     description: Perfil del usuario autenticado
   - name: Familiares
     description: Contactos de emergencia del usuario
+  - name: Mascotas
+    description: Mascotas del usuario (incluye marcado de "perdida")
   - name: HistorialMedico
     description: Información médica del usuario
   - name: Ubicaciones
@@ -191,6 +193,56 @@ paths:
       responses:
         '200': { description: OK }
 
+  # ----------- MASCOTAS -----------
+  /mascotas:
+    get:
+      tags: [Mascotas]
+      summary: Listar mis mascotas
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Mascota' }
+    post:
+      tags: [Mascotas]
+      summary: Agregar una mascota
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MascotaInput' }
+      responses:
+        '201': { description: Creada }
+
+  /mascotas/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    put:
+      tags: [Mascotas]
+      summary: Actualizar mascota
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MascotaInput' }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [Mascotas]
+      summary: Eliminar mascota
+      responses:
+        '200': { description: OK }
+
   # ----------- HISTORIAL MEDICO -----------
   /historial-medico:
     get:
@@ -355,6 +407,37 @@ components:
         telefono: { type: string }
         email:    { type: string, format: email }
         relacion: { type: string }
+
+    Mascota:
+      type: object
+      properties:
+        id:              { type: integer }
+        usuario_id:      { type: integer }
+        nombre:          { type: string,  example: "Firulais" }
+        especie:         { type: string,  enum: [perro, gato, otro] }
+        raza:            { type: string,  nullable: true }
+        color:           { type: string,  nullable: true }
+        edad_anios:      { type: integer, nullable: true }
+        foto:            { type: string,  nullable: true }
+        microchip:       { type: string,  nullable: true }
+        perdida:         { type: boolean, default: false }
+        mensaje_perdida: { type: string,  nullable: true }
+        creado_en:       { type: string,  format: date-time }
+        actualizado_en:  { type: string,  format: date-time }
+
+    MascotaInput:
+      type: object
+      required: [nombre, especie]
+      properties:
+        nombre:          { type: string }
+        especie:         { type: string, enum: [perro, gato, otro] }
+        raza:            { type: string }
+        color:           { type: string }
+        edad_anios:      { type: integer }
+        foto:            { type: string }
+        microchip:       { type: string }
+        perdida:         { type: boolean }
+        mensaje_perdida: { type: string }
 
     HistorialMedico:
       type: object

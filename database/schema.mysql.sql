@@ -13,6 +13,7 @@ USE quickrescue;
 -- Drop en orden inverso por las FKs
 DROP TABLE IF EXISTS ubicaciones;
 DROP TABLE IF EXISTS historial_medico;
+DROP TABLE IF EXISTS mascotas;
 DROP TABLE IF EXISTS familiares;
 DROP TABLE IF EXISTS usuarios;
 
@@ -56,6 +57,33 @@ CREATE TABLE familiares (
     PRIMARY KEY (id),
     KEY ix_familiares_usuario (usuario_id),
     CONSTRAINT fk_familiares_usuario
+        FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+--  MASCOTAS
+--  1 usuario → N mascotas. `perdida` permite habilitar
+--  una vista pública con `mensaje_perdida`.
+-- --------------------------------------------------------
+CREATE TABLE mascotas (
+    id               INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+    usuario_id       INT UNSIGNED      NOT NULL,
+    nombre           VARCHAR(80)       NOT NULL,
+    especie          VARCHAR(20)       NOT NULL,                  -- "perro", "gato", "otro"
+    raza             VARCHAR(60)       DEFAULT NULL,
+    color            VARCHAR(40)       DEFAULT NULL,
+    edad_anios       SMALLINT UNSIGNED DEFAULT NULL,
+    foto             VARCHAR(255)      DEFAULT NULL,
+    microchip        VARCHAR(40)       DEFAULT NULL,
+    perdida          TINYINT(1)        NOT NULL DEFAULT 0,
+    mensaje_perdida  TEXT              DEFAULT NULL,
+    creado_en        DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en   DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP
+                     ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY ix_mascotas_usuario (usuario_id),
+    CONSTRAINT fk_mascotas_usuario
         FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

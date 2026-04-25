@@ -22,6 +22,24 @@ export interface Familiar {
   creado_en: string;
 }
 
+export type EspecieMascota = 'perro' | 'gato' | 'otro';
+
+export interface Mascota {
+  id: number;
+  usuario_id: number;
+  nombre: string;
+  especie: EspecieMascota;
+  raza: string | null;
+  color: string | null;
+  edad_anios: number | null;
+  foto: string | null;
+  microchip: string | null;
+  perdida: boolean;
+  mensaje_perdida: string | null;
+  creado_en: string;
+  actualizado_en: string;
+}
+
 export interface HistorialMedico {
   id: number;
   usuario_id: number;

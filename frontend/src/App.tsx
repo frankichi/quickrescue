@@ -4,6 +4,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Familiares from './pages/Familiares';
+import Mascotas from './pages/Mascotas';
 import HistorialMedico from './pages/HistorialMedico';
 import Ubicaciones from './pages/Ubicaciones';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/"          element={<Dashboard />} />
         <Route path="/perfil"    element={<Profile />} />
         <Route path="/familiares" element={<Familiares />} />
+        <Route path="/mascotas" element={<Mascotas />} />
         <Route path="/historial" element={<HistorialMedico />} />
         <Route path="/ubicaciones" element={<Ubicaciones />} />
       </Route>

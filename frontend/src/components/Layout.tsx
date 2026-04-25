@@ -23,6 +23,7 @@ export default function Layout() {
           <NavLink to="/"            end className={linkClass}>📊 Dashboard</NavLink>
           <NavLink to="/perfil"          className={linkClass}>👤 Mi perfil</NavLink>
           <NavLink to="/familiares"      className={linkClass}>👨‍👩‍👧 Familiares</NavLink>
+          <NavLink to="/mascotas"        className={linkClass}>🐾 Mascotas</NavLink>
           <NavLink to="/historial"       className={linkClass}>🩺 Historial médico</NavLink>
           <NavLink to="/ubicaciones"     className={linkClass}>📍 Ubicaciones</NavLink>
         </nav>
