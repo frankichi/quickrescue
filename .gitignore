@@ -1,0 +1,56 @@
+# --- Node ---
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+
+# --- Variables de entorno ---
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# --- TypeScript ---
+*.tsbuildinfo
+
+# --- Editores ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Flutter ---
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/ios/Pods/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/app/google-services.json
+mobile/ios/Runner/GoogleService-Info.plist
+mobile/coverage/
+
+# --- APKs locales (los oficiales se publican vía GitHub Releases) ---
+*.apk
+!docs/example.apk
+
+# --- Bases de datos locales ---
+*.sqlite
+*.db
+backups/*.sql
+
+# --- Vercel ---
+.vercel
+
+# --- OS ---
+.DS_Store
