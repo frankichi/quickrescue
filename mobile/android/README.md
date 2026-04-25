@@ -10,9 +10,13 @@ flutter create .
 ```
 
 Eso completará el scaffold sin sobrescribir el `AndroidManifest.xml`
-ya configurado con los permisos y la entrada de Google Maps.
+ya configurado con los permisos.
 
-**No olvides**: editar `android/app/src/main/AndroidManifest.xml` y
-reemplazar `YOUR_MAPS_API_KEY` con tu API key real de Google Maps,
-o configurar el secret `MAPS_API_KEY` en GitHub Actions para que se
-inyecte automáticamente en cada build.
+El workflow de CI (`.github/workflows/build-apk.yml`) ejecuta
+`flutter create .` antes de `flutter pub get`, así que en cada build de
+GitHub Actions estos archivos se regeneran automáticamente.
+
+## Sobre el mapa
+Quick Rescue ya **no usa Google Maps**: el mapa es OpenStreetMap a través
+de `flutter_map`, lo que elimina la necesidad de API key, billing y de
+configurar nada extra en el `AndroidManifest.xml`.

@@ -1,4 +1,4 @@
-import { Usuario } from '../models';
+import { Usuario, HistorialMedico, Familiar } from '../models';
 import { AppError } from '../utils/AppError';
 
 const CAMPOS_EDITABLES = [
@@ -41,4 +41,41 @@ export const eliminarMiCuenta = async (uid: number) => {
   usuario.activo = false;
   await usuario.save();
   return { eliminado: true };
+};
+
+/**
+ * Perfil público mínimo, expuesto al escanear el QR del usuario. NO incluye
+ * email, password, dni ni datos de contacto privados del titular: solo lo
+ * que un rescatista necesita en una emergencia.
+ */
+export const obtenerPerfilPublico = async (id: number) => {
+  const usuario = await Usuario.findOne({
+    where: { id, activo: true },
+    include: [
+      { model: HistorialMedico, as: 'historial', required: false },
+      { model: Familiar,        as: 'familiares', required: false },
+    ],
+  });
+  if (!usuario) throw new AppError('Perfil no disponible', 404);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const u = usuario as any;
+  const historial = u.historial as HistorialMedico | null | undefined;
+  const familiares = (u.familiares ?? []) as Familiar[];
+
+  return {
+    id:               usuario.id,
+    nombre:           usuario.nombre,
+    apellido:         usuario.apellido,
+    foto:             usuario.foto,
+    grupo_sanguineo:  historial?.grupo_sanguineo ?? null,
+    alergias:         historial?.alergias        ?? null,
+    enfermedades:     historial?.enfermedades    ?? null,
+    medicamentos:     historial?.medicamentos    ?? null,
+    familiares: familiares.map((f) => ({
+      nombre:   f.nombre,
+      telefono: f.telefono,
+      relacion: f.relacion,
+    })),
+  };
 };

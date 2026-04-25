@@ -91,13 +91,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () {
-                      // TODO (Antigravity): pantalla de registro mobile.
-                      // Por ahora redirigimos al panel web.
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Crea tu cuenta en el panel web primero')),
-                      );
-                    },
+                    onPressed: _cargando
+                      ? null
+                      : () => Navigator.pushNamed(context, '/register'),
                     child: const Text('¿No tienes cuenta? Regístrate'),
                   ),
                 ],

@@ -2,9 +2,11 @@
 
 App Android (y iOS, con un poco de setup extra) que el titular del usuario
 lleva en su celular. Permite:
-- Iniciar sesión con la misma cuenta del panel web
-- Ver mapa con su ubicación actual
+- Iniciar sesión y registrarse desde la propia app
+- Ver mapa con su ubicación actual sobre **OpenStreetMap** (sin API key)
+- Reportar ubicación automáticamente cada 5 minutos en foreground
 - Pulsar el botón SOS que envía email a sus familiares con la ubicación
+- Escanear un QR de otro usuario para ver su perfil público de emergencia
 
 ## Setup local
 
@@ -30,18 +32,20 @@ static const String apiBaseUrl = 'https://tu-backend.onrender.com/api/v1';
 En CI/CD (GitHub Actions) este valor se inyecta automáticamente desde el
 secret `API_BASE_URL`. Ver `.github/workflows/build-apk.yml`.
 
-### Google Maps API key (Android)
-Editar `android/app/src/main/AndroidManifest.xml`, reemplazar
-`YOUR_MAPS_API_KEY` con tu key real.
-
-Sacar key en: https://console.cloud.google.com → APIs & Services → Credentials.
-Habilitar: **Maps SDK for Android**.
+### Mapa
+Quick Rescue usa **OpenStreetMap** vía `flutter_map`. **No requiere API
+key ni billing.** Solo se exige cumplir la attribution (ya incluida en la
+pantalla del mapa).
 
 ### Permisos
-Ya están declarados en `AndroidManifest.xml`:
+Declarados en `AndroidManifest.xml`:
 - `INTERNET`
-- `ACCESS_FINE_LOCATION`
-- `ACCESS_COARSE_LOCATION`
+- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` — para el GPS
+- `CAMERA` — para el lector de QR
+- `CALL_PHONE` — para llamar a familiares desde el detalle del QR
+
+Los permisos de cámara y ubicación se piden en runtime cuando el usuario
+usa la funcionalidad correspondiente.
 
 ## Estructura
 
@@ -54,6 +58,16 @@ lib/
 ├── screens/                   Una pantalla por archivo
 └── widgets/                   Componentes reutilizables
 ```
+
+### Pantallas
+- `splash_screen` — decide entre login/home según sesión guardada
+- `login_screen` — autenticación
+- `register_screen` — alta in-app del titular
+- `home_screen` — mapa OSM + SOS + acceso al lector QR
+- `sos_screen` — confirma y envía la alerta SOS
+- `profile_screen` — datos del titular
+- `qr_scanner_screen` — cámara + lector de QR
+- `qr_detail_screen` — perfil público asociado al QR escaneado
 
 ## Distribución del APK
 
