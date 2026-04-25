@@ -1,0 +1,50 @@
+# Render Blueprint — despliega backend + base de datos en un solo click.
+#
+# Uso:
+#   1. Sube este repo a GitHub.
+#   2. En Render: New → Blueprint → conecta tu repo → Apply.
+#   3. Render lee este archivo y crea ambos recursos automáticamente.
+#   4. Solo tienes que rellenar los valores marcados como `sync: false`
+#      (los secretos: JWT_SECRET, RESEND_API_KEY, CORS_ORIGINS).
+#
+# Documentación: https://render.com/docs/blueprint-spec
+
+databases:
+  - name: quickrescue-db
+    databaseName: quickrescue
+    user: quickrescue
+    plan: free
+    # Postgres versión 16 (la última soportada en free al momento)
+    postgresMajorVersion: 16
+
+services:
+  - type: web
+    name: quickrescue-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: quickrescue-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true        # Render genera uno seguro automáticamente
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: RESEND_API_KEY
+        sync: false                # Tienes que pegar tu key manualmente
+      - key: EMAIL_FROM
+        value: "Quick Rescue <onboarding@resend.dev>"
+      - key: CORS_ORIGINS
+        sync: false                # Pegar la URL de Vercel después del primer deploy
+      - key: GOOGLE_MAPS_BASE_URL
+        value: https://www.google.com/maps?q=
