@@ -8,17 +8,16 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const String _msgInicial = 'Conectando con el servidor…';
-  static const String _msgColdStart =
-      'El servidor está despertando, esto puede tomar 30-60s la primera vez…';
-  static const Duration _umbralColdStart = Duration(seconds: 10);
+  static const String _txtNormal     = 'Ingresando…';
+  static const String _txtColdStart  = 'Despertando servidor (hasta 90s)…';
+  static const Duration _umbralColdStart = Duration(seconds: 8);
 
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _pass  = TextEditingController();
   bool _cargando = false;
   String? _error;
-  String _mensajeProgreso = _msgInicial;
+  String _txtCargando = _txtNormal;
   Timer? _timerColdStart;
 
   @override
@@ -32,12 +31,12 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _cargando = true;
       _error = null;
-      _mensajeProgreso = _msgInicial;
+      _txtCargando = _txtNormal;
     });
-    // Si pasan 10s sin respuesta, asumimos cold-start de Render y avisamos.
+    // A los 8s asumimos cold-start de Render y avisamos en el botón.
     _timerColdStart = Timer(_umbralColdStart, () {
       if (mounted && _cargando) {
-        setState(() => _mensajeProgreso = _msgColdStart);
+        setState(() => _txtCargando = _txtColdStart);
       }
     });
     try {
@@ -105,21 +104,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: _cargando
-                      ? const SizedBox(width: 20, height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(width: 18, height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: Text(
+                                _txtCargando,
+                                style: const TextStyle(fontSize: 15),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        )
                       : const Text('Ingresar', style: TextStyle(fontSize: 16)),
                   ),
-                  if (_cargando) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _mensajeProgreso,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: _cargando

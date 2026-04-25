@@ -17,7 +17,7 @@ class AppConfig {
         ? 'http://10.0.2.2:3000/api/v1'
         : apiBaseUrl;
 
-  // 90s para tolerar el cold start del free tier de Render
-  // (la primera petición tras 15 min de sueño puede tardar 30-60s).
-  static const Duration httpTimeout = Duration(seconds: 90);
+  // 120s para tolerar el cold start del free tier de Render
+  // (la primera petición tras 15 min de sueño puede tardar 30-90s).
+  static const Duration httpTimeout = Duration(seconds: 120);
 }
