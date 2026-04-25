@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
@@ -7,20 +8,38 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const String _msgInicial = 'Conectando con el servidor…';
+  static const String _msgColdStart =
+      'El servidor está despertando, esto puede tomar 30-60s la primera vez…';
+  static const Duration _umbralColdStart = Duration(seconds: 10);
+
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _pass  = TextEditingController();
   bool _cargando = false;
   String? _error;
+  String _mensajeProgreso = _msgInicial;
+  Timer? _timerColdStart;
 
   @override
   void dispose() {
+    _timerColdStart?.cancel();
     _email.dispose(); _pass.dispose(); super.dispose();
   }
 
   Future<void> _login() async {
     if (!_form.currentState!.validate()) return;
-    setState(() { _cargando = true; _error = null; });
+    setState(() {
+      _cargando = true;
+      _error = null;
+      _mensajeProgreso = _msgInicial;
+    });
+    // Si pasan 10s sin respuesta, asumimos cold-start de Render y avisamos.
+    _timerColdStart = Timer(_umbralColdStart, () {
+      if (mounted && _cargando) {
+        setState(() => _mensajeProgreso = _msgColdStart);
+      }
+    });
     try {
       await AuthService.login(_email.text.trim(), _pass.text);
       if (!mounted) return;
@@ -28,6 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
+      _timerColdStart?.cancel();
       if (mounted) setState(() => _cargando = false);
     }
   }
@@ -89,6 +109,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Text('Ingresar', style: TextStyle(fontSize: 16)),
                   ),
+                  if (_cargando) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _mensajeProgreso,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: _cargando
