@@ -29,20 +29,6 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Inyectar API_BASE_URL en config
-        # Reemplaza el placeholder DEFAULT_API_URL en app_config.dart con
-        # el secret de GitHub. Así el APK compilado apunta al backend real.
-        working-directory: mobile
-        env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
-        run: |
-          if [ -z "$API_BASE_URL" ]; then
-            echo "::warning::Secret API_BASE_URL no definido. El APK usará la URL por defecto."
-          else
-            sed -i "s|DEFAULT_API_URL|$API_BASE_URL|g" lib/config/app_config.dart
-            echo "API_BASE_URL inyectada correctamente."
-          fi
-
       - name: Regenerar scaffold Android (build.gradle, MainActivity, etc.)
         # El repo solo trackea AndroidManifest.xml personalizado; el resto
         # del scaffold Android lo regenera Flutter aquí. `--platforms android`
@@ -54,9 +40,13 @@ jobs:
         working-directory: mobile
         run: flutter pub get
 
-      - name: Build APK release
+      - name: Build APK release con API_BASE_URL inyectada
+        # --dart-define inyecta la URL en compile-time vía
+        # String.fromEnvironment('API_BASE_URL', ...) en lib/config/app_config.dart
         working-directory: mobile
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release \
+            --dart-define=API_BASE_URL="${{ secrets.API_BASE_URL }}"
 
       - name: Renombrar APK
         working-directory: mobile/build/app/outputs/flutter-apk

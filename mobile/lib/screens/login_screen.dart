@@ -12,11 +12,9 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   // Mensajes progresivos del botón cargando.
-  static const _msgInicial      = 'Ingresando…';
-  static const _msg5s           = 'Conectando con el servidor…';
-  static const _msg20s          = 'El servidor está despertando, un momento…';
-  static const _msg45s          = 'Está tardando más de lo esperado. Si tienes UptimeRobot configurado, esto no debería pasar.';
-  static const _msgTimeoutFinal = 'No se pudo conectar al servidor. Verifica tu internet o intenta de nuevo.';
+  static const _msgInicial = 'Conectando…';
+  static const _msg8s      = 'Despertando servidor…';
+  static const _msg30s     = 'Esto está tardando demasiado, verifica tu conexión';
 
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
@@ -45,9 +43,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted && _cargando) setState(() => _txtCargando = txt);
       }));
     }
-    programar(const Duration(seconds: 5),  _msg5s);
-    programar(const Duration(seconds: 20), _msg20s);
-    programar(const Duration(seconds: 45), _msg45s);
+    programar(const Duration(seconds: 8),  _msg8s);
+    programar(const Duration(seconds: 30), _msg30s);
   }
 
   Future<void> _login() async {
@@ -66,9 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e, stack) {
       if (!mounted) return;
-      final detalles = _detallarError(e);
-      setState(() => _error = detalles);
-      // Además del banner inline, snackbar con la URL diagnóstica.
+      setState(() => _error = _detallarError(e));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           duration: const Duration(seconds: 8),
@@ -78,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
             style: const TextStyle(fontSize: 12, color: Colors.white),
           ),
           action: SnackBarAction(
-            label: 'Detalle',
+            label: 'Stack',
             textColor: Colors.white,
             onPressed: () => _mostrarStackTrace(e, stack),
           ),
@@ -95,9 +90,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final url  = AppConfig.effectiveApiUrl;
     String contexto;
     if (e is TimeoutException) {
-      contexto = '$_msgTimeoutFinal\nEl servidor no respondió.';
+      contexto = 'El servidor no respondió a tiempo (timeout ${AppConfig.httpTimeout.inSeconds}s).';
     } else if (e is SocketException) {
       contexto = 'Error de red — verifica tu conexión a internet.';
+    } else if (e is FormatException) {
+      contexto = 'Respuesta del servidor inválida (FormatException). ¿La URL apunta a un backend correcto?';
     } else {
       contexto = e.toString();
     }
@@ -111,7 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Stack trace'),
         content: SingleChildScrollView(
-          child: SelectableText(txt, style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
+          child: SelectableText(txt,
+              style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
         ),
         actions: [
           TextButton.icon(
@@ -169,105 +167,106 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bug_report, color: Color(0xFFD62828)),
-            tooltip: 'Debug',
-            onPressed: _abrirDebugDialog,
-          ),
-        ],
-      ),
-      extendBodyBehindAppBar: true,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _form,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Icon(Icons.health_and_safety,
-                             size: 64, color: Color(0xFFD62828)),
-                  const SizedBox(height: 16),
-                  const Text('Quick Rescue', textAlign: TextAlign.center,
-                             style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 32),
-                  TextFormField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Correo electrónico',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) =>
-                        (v == null || !v.contains('@')) ? 'Email inválido' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _pass,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Contraseña',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.length < 8) ? 'Mínimo 8 caracteres' : null,
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFD62828)),
+        child: Stack(
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _form,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Icon(Icons.health_and_safety,
+                                 size: 64, color: Color(0xFFD62828)),
+                      const SizedBox(height: 16),
+                      const Text('Quick Rescue', textAlign: TextAlign.center,
+                                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 32),
+                      TextFormField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Correo electrónico',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) =>
+                            (v == null || !v.contains('@')) ? 'Email inválido' : null,
                       ),
-                      child: SelectableText(_error!,
-                          style: const TextStyle(color: Color(0xFFD62828), fontSize: 13)),
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _cargando ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD62828),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: _cargando
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(width: 18, height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-                            const SizedBox(width: 12),
-                            Flexible(
-                              child: Text(
-                                _txtCargando,
-                                style: const TextStyle(fontSize: 14),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        )
-                      : const Text('Ingresar', style: TextStyle(fontSize: 16)),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _pass,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Contraseña',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) =>
+                            (v == null || v.length < 8) ? 'Mínimo 8 caracteres' : null,
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFD62828)),
+                          ),
+                          child: SelectableText(_error!,
+                              style: const TextStyle(color: Color(0xFFD62828), fontSize: 13)),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _cargando ? null : _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD62828),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: _cargando
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(width: 18, height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                                const SizedBox(width: 12),
+                                Flexible(
+                                  child: Text(
+                                    _txtCargando,
+                                    style: const TextStyle(fontSize: 14),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const Text('Ingresar', style: TextStyle(fontSize: 16)),
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: _cargando
+                          ? null
+                          : () => Navigator.pushNamed(context, '/register'),
+                        child: const Text('¿No tienes cuenta? Regístrate'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: _cargando
-                      ? null
-                      : () => Navigator.pushNamed(context, '/register'),
-                    child: const Text('¿No tienes cuenta? Regístrate'),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
+            // Botón de bug en esquina superior derecha, visible sin login.
+            Positioned(
+              top: 8, right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.bug_report, color: Color(0xFFD62828)),
+                tooltip: 'Debug',
+                onPressed: _abrirDebugDialog,
+              ),
+            ),
+          ],
         ),
       ),
     );
