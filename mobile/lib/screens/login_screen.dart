@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
           duration: const Duration(seconds: 8),
           backgroundColor: Colors.red.shade900,
           content: Text(
-            '${e.runtimeType}\n→ ${AppConfig.effectiveApiUrl}\n${e.toString()}',
+            '${e.runtimeType}\n→ ${AppConfig.apiBaseUrl}\n${e.toString()}',
             style: const TextStyle(fontSize: 12, color: Colors.white),
           ),
           action: SnackBarAction(
@@ -87,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String _detallarError(Object e) {
     final tipo = e.runtimeType.toString();
-    final url  = AppConfig.effectiveApiUrl;
+    final url  = AppConfig.apiBaseUrl;
     String contexto;
     if (e is TimeoutException) {
       contexto = 'El servidor no respondió a tiempo (timeout ${AppConfig.httpTimeout.inSeconds}s).';

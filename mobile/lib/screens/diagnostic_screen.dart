@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import '../services/api_service.dart';
 import '../services/auth_service.dart';
 
 class DiagnosticScreen extends StatefulWidget {
@@ -28,7 +29,7 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> {
 
   Future<void> _probarHealth() async {
     setState(() { _ocupado = true; });
-    final url = '${AppConfig.effectiveApiUrl}/health';
+    final url = '${ApiService.baseUrl}/health';
     _agregar('GET $url');
     final t = Stopwatch()..start();
     try {
@@ -122,7 +123,9 @@ class _DiagnosticScreenState extends State<DiagnosticScreen> {
               padding: const EdgeInsets.all(10),
               color: Colors.grey.shade100,
               child: SelectableText(
-                AppConfig.debugInfo(),
+                '${AppConfig.debugInfo()}\n'
+                'ApiService.baseUrl: ${ApiService.baseUrl}\n'
+                'Ejemplo: ${ApiService.baseUrl}/health',
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
               ),
             ),

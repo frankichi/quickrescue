@@ -23,7 +23,12 @@ class ApiService {
     return h;
   }
 
-  static Uri _uri(String path) => Uri.parse('${AppConfig.effectiveApiUrl}$path');
+  /// URL base que ApiService realmente usará para construir cada request.
+  /// Expuesta para que la pantalla de diagnóstico pueda mostrar exactamente
+  /// la URL que estamos pegando (no una constante separada que pueda divergir).
+  static String get baseUrl => AppConfig.apiBaseUrl;
+
+  static Uri _uri(String path) => Uri.parse('$baseUrl$path');
 
   static dynamic _parse(http.Response r) {
     final body = jsonDecode(r.body);
