@@ -13,7 +13,7 @@ const parseTipoYId = (req: Request): { tipo: TipoEscaneo; id: number } => {
 
 export const obtenerPerfilPublico = async (req: Request, res: Response): Promise<void> => {
   const { tipo, id } = parseTipoYId(req);
-  const data = await service.resolverQR(tipo, id);
+  const data = await service.obtenerPerfilPublico(tipo, id);
   res.json({ success: true, data });
 };
 

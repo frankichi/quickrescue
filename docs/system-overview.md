@@ -1,11 +1,15 @@
 # System Overview — Quick Rescue
 
-## Propósito
+## Concepto del producto
 
-Quick Rescue es un sistema para **proteger a personas vulnerables y mascotas
-mediante un código QR físico** (pulsera, llavero, collar) que cualquier
-transeúnte puede escanear con la cámara nativa de su celular para acceder
-a la información necesaria para devolver/rescatar al portador.
+Quick Rescue es un **servicio que vende QRs físicos** (collares, pulseras,
+llaveros) que el TITULAR (afiliado) compra para identificar a sí mismo,
+sus familiares vulnerables (adultos mayores, niños) y sus mascotas.
+
+Cuando un transeúnte encuentra a alguien perdido, escanea el QR físico con
+la **cámara nativa de su celular** y abre una página web pública con foto,
+datos médicos y botón para llamar al titular. El escaneo notifica
+automáticamente al titular por email (y push, en Fase 2).
 
 ## Roles
 
@@ -114,6 +118,22 @@ backend/services/qr.service.ts
    ├──► INSERT en `escaneos_qr`
    └──► Email automático al titular con link a Maps (si hubo coords)
 ```
+
+## Modelo de negocio
+
+Quick Rescue cobra por los **identificadores físicos**:
+
+| Producto       | Precio  | Uso                                   |
+|----------------|---------|---------------------------------------|
+| Llavero QR     | S/ 25   | Para llaveros / mochilas              |
+| Collar QR      | S/ 35   | Mascotas (collar de resina)           |
+| Pulsera QR     | S/ 45   | Adultos mayores / niños               |
+
+El titular hace el pedido desde el panel web (`/tienda`) o la app móvil.
+La tabla `compras` guarda el histórico con estados:
+`pendiente → confirmado → enviado → entregado` (o `cancelado`).
+La logística la gestiona Quick Rescue manualmente (vía WhatsApp).
+Los datos del perfil/mascota se asocian al QR antes del envío.
 
 ## Decisiones de diseño
 

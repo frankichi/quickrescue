@@ -95,6 +95,16 @@ export const validarIdParam = [
   param('id').isInt({ min: 1 }).withMessage('ID inválido'),
 ];
 
+const PRODUCTOS_QR    = ['collar', 'pulsera', 'llavero'];
+const DESTINATARIO_QR = ['usuario', 'familiar', 'mascota'];
+
+export const validarCompra = [
+  body('producto')          .isIn(PRODUCTOS_QR).withMessage('Producto inválido'),
+  body('destinatario_tipo') .isIn(DESTINATARIO_QR).withMessage('Destinatario inválido'),
+  body('destinatario_id')   .isInt({ min: 1 }).withMessage('destinatario_id inválido'),
+  body('notas')             .optional({ nullable: true }).isString().isLength({ max: 1000 }),
+];
+
 export const validarLimitQuery = [
   query('limit').optional().isInt({ min: 1, max: 200 }),
 ];

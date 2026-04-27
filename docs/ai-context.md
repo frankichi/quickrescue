@@ -19,7 +19,23 @@ mascotas. Tres componentes:
 > ⚠️ **Pivote v1.1.0** (2026-04-26): el SOS desapareció. La nueva propuesta
 > de valor es el QR físico que cualquiera puede escanear sin instalar nada.
 
-## Estado actual (✅ funcional, post-pivote v1.1.0)
+## Estado actual (✅ post-pivote v1.1.0 + Fase 1 del rediseño)
+
+### Fase 1 (backend + web) — COMPLETADA
+- [x] Tabla `escaneos_qr` con `direccion` (reverse geocoding Nominatim)
+- [x] Tabla `compras` (catálogo: collar/pulsera/llavero) + módulo Tienda
+- [x] Subida de fotos a Cloudinary (POST /fotos/{usuario,familiar,mascota})
+- [x] Columna `usuarios.onesignal_player_id` (placeholder, push en Fase 2)
+- [x] Email "alguien escaneó el QR de [nombre]" con plantilla HTML azul
+- [x] Frontend con paleta azul (#5BA0D0 primary, #2C3E50 secondary)
+- [x] PublicQR rediseñada con tipos diferenciados (mascota usa primera persona)
+- [x] Página `/escaneos` (sidebar: 🔔 Alertas) con filtro por tipo
+- [x] Página `/tienda` con catálogo + modal de compra + histórico
+
+### Fase 2 (mobile rewrite + push) — pendiente
+- [ ] Rewrite app móvil con dashboard, paleta azul
+- [ ] OneSignal push notifications (usar `onesignal_player_id`)
+- [ ] Pantalla "Mi QR" mobile con compartir
 
 ### Documentación
 - [x] `README.md`, `AGENTS.md`, `ROADMAP.md` raíz

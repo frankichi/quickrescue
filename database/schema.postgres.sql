@@ -7,6 +7,7 @@
 -- Si quisieras crearla manualmente:
 --   CREATE DATABASE quickrescue WITH ENCODING 'UTF8';
 
+DROP TABLE IF EXISTS compras CASCADE;
 DROP TABLE IF EXISTS escaneos_qr CASCADE;
 DROP TABLE IF EXISTS ubicaciones CASCADE;
 DROP TABLE IF EXISTS historial_medico CASCADE;
@@ -24,7 +25,8 @@ CREATE TABLE usuarios (
     dni                VARCHAR(15),
     email              VARCHAR(120) NOT NULL UNIQUE,
     password_hash      VARCHAR(255) NOT NULL,
-    foto               VARCHAR(255),
+    foto                VARCHAR(500),
+    onesignal_player_id VARCHAR(100),
     fecha_nacimiento   DATE,
     direccion          VARCHAR(200),
     distrito           VARCHAR(60),
@@ -58,6 +60,7 @@ CREATE TABLE familiares (
     telefono     VARCHAR(20)  NOT NULL,
     email        VARCHAR(120),
     relacion     VARCHAR(40)  NOT NULL,
+    foto         VARCHAR(500),
     creado_en    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX ix_familiares_usuario ON familiares(usuario_id);
@@ -131,11 +134,34 @@ CREATE TABLE escaneos_qr (
     tipo            VARCHAR(20)     NOT NULL CHECK (tipo IN ('usuario','familiar','mascota')),
     referencia_id   INTEGER         NOT NULL,
     titular_id      INTEGER         NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    latitud         NUMERIC(10,7),
-    longitud        NUMERIC(10,7),
+    latitud         DECIMAL(10,8),
+    longitud        DECIMAL(11,8),
+    direccion       VARCHAR(255),
     ip              VARCHAR(45),
-    user_agent      VARCHAR(500),
+    user_agent      TEXT,
     creado_en       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX ix_escaneos_titular_fecha ON escaneos_qr(titular_id, creado_en DESC);
-CREATE INDEX ix_escaneos_ref           ON escaneos_qr(tipo, referencia_id);
+CREATE INDEX idx_escaneos_titular_fecha ON escaneos_qr(titular_id, creado_en DESC);
+CREATE INDEX idx_escaneos_ref           ON escaneos_qr(tipo, referencia_id);
+
+-- --------------------------------------------------------
+--  COMPRAS (tienda Quick Rescue)
+-- --------------------------------------------------------
+CREATE TABLE compras (
+    id                 SERIAL PRIMARY KEY,
+    usuario_id         INTEGER     NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    producto           VARCHAR(50) NOT NULL CHECK (producto IN ('collar','pulsera','llavero')),
+    destinatario_tipo  VARCHAR(20) NOT NULL CHECK (destinatario_tipo IN ('usuario','familiar','mascota')),
+    destinatario_id    INTEGER     NOT NULL,
+    precio             DECIMAL(10,2) NOT NULL,
+    estado             VARCHAR(20) NOT NULL DEFAULT 'pendiente'
+                       CHECK (estado IN ('pendiente','confirmado','enviado','entregado','cancelado')),
+    notas              TEXT,
+    creado_en          TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en     TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_compras_usuario_fecha ON compras(usuario_id, creado_en DESC);
+
+CREATE TRIGGER trg_compras_actualizado
+    BEFORE UPDATE ON compras
+    FOR EACH ROW EXECUTE FUNCTION trg_actualizado_en();

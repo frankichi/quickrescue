@@ -4,8 +4,9 @@ import { AppError } from '../utils/AppError';
 export interface DatosFamiliar {
   nombre: string;
   telefono: string;
-  email?: string;
+  email?: string | null;
   relacion: string;
+  foto?: string | null;
 }
 
 export const listar = (uid: number) =>
@@ -21,6 +22,7 @@ export const crear = (uid: number, datos: DatosFamiliar) =>
     telefono:   datos.telefono,
     email:      datos.email ?? null,
     relacion:   datos.relacion,
+    foto:       datos.foto ?? null,
   });
 
 const cargarPropio = async (uid: number, id: number): Promise<Familiar> => {
@@ -33,8 +35,9 @@ export const actualizar = async (uid: number, id: number, datos: Partial<DatosFa
   const familiar = await cargarPropio(uid, id);
   if (datos.nombre   !== undefined) familiar.nombre   = datos.nombre;
   if (datos.telefono !== undefined) familiar.telefono = datos.telefono;
-  if (datos.email    !== undefined) familiar.email    = datos.email;
+  if (datos.email    !== undefined) familiar.email    = datos.email ?? null;
   if (datos.relacion !== undefined) familiar.relacion = datos.relacion;
+  if (datos.foto     !== undefined) familiar.foto     = datos.foto ?? null;
   await familiar.save();
   return familiar;
 };

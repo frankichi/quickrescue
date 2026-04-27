@@ -33,6 +33,12 @@ tags:
                  pública del QR físico
   - name: Escaneos
     description: Histórico de escaneos recibidos por el titular
+  - name: Fotos
+    description: Subida de fotos a Cloudinary
+  - name: Tienda
+    description: Catálogo público de productos (collar/pulsera/llavero)
+  - name: Compras
+    description: Pedidos del titular sobre los productos de la tienda
 
 paths:
   /health:
@@ -414,6 +420,128 @@ paths:
       responses:
         '201': { description: Creado }
 
+  # ----------- FOTOS (multipart/form-data) -----------
+  /fotos/usuario/me:
+    post:
+      tags: [Fotos]
+      summary: Subir/reemplazar foto del titular
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [foto]
+              properties:
+                foto: { type: string, format: binary }
+      responses:
+        '201':
+          description: URL Cloudinary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties: { url: { type: string, format: uri } }
+
+  /fotos/familiar/{id}:
+    post:
+      tags: [Fotos]
+      summary: Subir foto de un familiar (verifica ownership)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [foto]
+              properties: { foto: { type: string, format: binary } }
+      responses:
+        '201': { description: OK }
+
+  /fotos/mascota/{id}:
+    post:
+      tags: [Fotos]
+      summary: Subir foto de una mascota (verifica ownership)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [foto]
+              properties: { foto: { type: string, format: binary } }
+      responses:
+        '201': { description: OK }
+
+  # ----------- TIENDA (catálogo público) -----------
+  /tienda/productos:
+    get:
+      tags: [Tienda]
+      summary: Catálogo de productos QR físicos
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Producto' }
+
+  # ----------- COMPRAS (titular autenticado) -----------
+  /compras:
+    get:
+      tags: [Compras]
+      summary: Historial de mis compras
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Compra' }
+    post:
+      tags: [Compras]
+      summary: Crear nuevo pedido
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CompraInput' }
+      responses:
+        '201':
+          description: Pedido creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:    { $ref: '#/components/schemas/Compra' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -487,7 +615,39 @@ components:
         nombre_referencia: { type: string }
         latitud:           { type: number, format: float, nullable: true }
         longitud:          { type: number, format: float, nullable: true }
+        direccion:         { type: string, nullable: true }
         creado_en:         { type: string, format: date-time }
+
+    Producto:
+      type: object
+      properties:
+        id:          { type: string, enum: [collar, pulsera, llavero] }
+        nombre:      { type: string }
+        precio:      { type: number, format: float }
+        descripcion: { type: string }
+
+    Compra:
+      type: object
+      properties:
+        id:                  { type: integer }
+        producto:            { type: string, enum: [collar, pulsera, llavero] }
+        producto_nombre:     { type: string }
+        destinatario_tipo:   { type: string, enum: [usuario, familiar, mascota] }
+        destinatario_id:     { type: integer }
+        destinatario_nombre: { type: string }
+        precio:              { type: number, format: float }
+        estado:              { type: string, enum: [pendiente, confirmado, enviado, entregado, cancelado] }
+        notas:               { type: string, nullable: true }
+        creado_en:           { type: string, format: date-time }
+
+    CompraInput:
+      type: object
+      required: [producto, destinatario_tipo, destinatario_id]
+      properties:
+        producto:          { type: string, enum: [collar, pulsera, llavero] }
+        destinatario_tipo: { type: string, enum: [usuario, familiar, mascota] }
+        destinatario_id:   { type: integer }
+        notas:             { type: string }
 
     UsuarioUpdate:
       type: object

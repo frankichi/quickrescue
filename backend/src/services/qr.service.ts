@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { Usuario, Familiar, Mascota, HistorialMedico, Escaneo } from '../models';
 import { AppError } from '../utils/AppError';
 import { enviarEmail } from '../config/mailer';
@@ -6,58 +8,79 @@ import { logger } from '../utils/logger';
 import type { TipoEscaneo } from '../models/escaneo.model';
 
 const TIPOS_VALIDOS: TipoEscaneo[] = ['usuario', 'familiar', 'mascota'];
-
 export const esTipoValido = (t: string): t is TipoEscaneo =>
   (TIPOS_VALIDOS as string[]).includes(t);
 
+/** Calcula edad en años desde una fecha (string YYYY-MM-DD o Date). */
+const edadDesde = (fecha: Date | string | null): number | null => {
+  if (!fecha) return null;
+  const f = typeof fecha === 'string' ? new Date(fecha) : fecha;
+  if (Number.isNaN(f.getTime())) return null;
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - f.getFullYear();
+  const m = hoy.getMonth() - f.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < f.getDate())) edad--;
+  return edad >= 0 ? edad : null;
+};
+
 /**
  * Datos públicos que ve un transeúnte cuando escanea un QR.
- * Pensado para ser MÍNIMO: identificar a la persona/mascota y poder
- * contactar al titular. Nunca incluye email del titular ni DNI.
+ * Pensado para ser MÍNIMO: identificar y poder contactar al titular.
+ * Nunca incluye email del titular ni password.
  */
-export interface PerfilPublico {
-  tipo: TipoEscaneo;
+export interface ContactoTitular {
+  nombre: string;
+  telefono: string | null;
+}
+
+export interface PerfilUsuarioOFamiliar {
+  tipo: 'usuario' | 'familiar';
   id: number;
   titular_id: number;
   nombre: string;
-  subtitulo: string;            // "Adulto" | "Hijo" | "Perro - Bulldog", etc.
+  apellido: string | null;
+  dni: string | null;
   foto: string | null;
-  // Datos médicos (solo aplica a personas)
-  grupo_sanguineo?: string | null;
-  alergias?:        string | null;
-  enfermedades?:    string | null;
-  medicamentos?:    string | null;
-  // Específico mascota
-  microchip?:       string | null;
-  perdida?:         boolean;
-  mensaje_perdida?: string | null;
-  // Contacto
-  contacto: {
-    nombre_titular: string;
-    telefono: string | null;     // teléfono del primer familiar (titular no tiene tel)
-    relacion: string | null;
-    familiares: Array<{ nombre: string; telefono: string; relacion: string }>;
-  };
+  fecha_nacimiento: string | null;
+  edad: number | null;
+  grupo_sanguineo: string | null;
+  alergias: string | null;
+  enfermedades: string | null;
+  medicamentos: string | null;
+  direccion: string | null;
+  distrito: string | null;
+  provincia: string | null;
+  contacto: ContactoTitular;
 }
 
-const familiaresContacto = async (titularId: number) => {
-  const lista = await Familiar.findAll({
-    where: { usuario_id: titularId },
+export interface PerfilMascota {
+  tipo: 'mascota';
+  id: number;
+  titular_id: number;
+  nombre: string;
+  especie: string;
+  raza: string | null;
+  color: string | null;
+  tamano: string | null;
+  edad_anios: number | null;
+  foto: string | null;
+  descripcion: string | null;
+  perdida: boolean;
+  distrito: string | null;
+  contacto: ContactoTitular;
+}
+
+export type PerfilPublico = PerfilUsuarioOFamiliar | PerfilMascota;
+
+/** El primer familiar registrado actúa como contacto principal del titular. */
+const armarContacto = async (titular: Usuario): Promise<ContactoTitular> => {
+  const principal = await Familiar.findOne({
+    where: { usuario_id: titular.id },
     order: [['creado_en', 'ASC']],
   });
-  return lista.map((f) => ({
-    nombre: f.nombre, telefono: f.telefono, relacion: f.relacion,
-  }));
-};
-
-const armarContacto = async (titular: Usuario) => {
-  const familiares = await familiaresContacto(titular.id);
-  const principal = familiares[0] ?? null;
   return {
-    nombre_titular: `${titular.nombre} ${titular.apellido}`,
+    nombre: `${titular.nombre} ${titular.apellido}`,
     telefono: principal?.telefono ?? null,
-    relacion: principal?.relacion ?? null,
-    familiares,
   };
 };
 
@@ -68,29 +91,37 @@ const requireTitularActivo = async (id: number): Promise<Usuario> => {
 };
 
 /**
- * Resuelve el perfil público de un QR. Lanza 404 si:
- *  - el tipo no es válido
- *  - la entidad no existe
- *  - el titular asociado está inactivo
+ * Devuelve el perfil público de un QR. Lanza AppError(404) si no se
+ * encuentra o si el titular asociado está inactivo.
  */
-export const resolverQR = async (
+export const obtenerPerfilPublico = async (
   tipo: TipoEscaneo,
   id: number,
 ): Promise<PerfilPublico> => {
   if (tipo === 'usuario') {
     const titular = await requireTitularActivo(id);
     const historial = await HistorialMedico.findOne({ where: { usuario_id: id } });
-    const contacto = await armarContacto(titular);
+    const fechaNac = titular.fecha_nacimiento
+      ? new Date(titular.fecha_nacimiento).toISOString().slice(0, 10)
+      : null;
     return {
-      tipo, id, titular_id: titular.id,
-      nombre: `${titular.nombre} ${titular.apellido}`,
-      subtitulo: 'Titular',
+      tipo,
+      id,
+      titular_id: titular.id,
+      nombre: titular.nombre,
+      apellido: titular.apellido,
+      dni: titular.dni,
       foto: titular.foto,
+      fecha_nacimiento: fechaNac,
+      edad: edadDesde(titular.fecha_nacimiento),
       grupo_sanguineo: historial?.grupo_sanguineo ?? null,
       alergias:        historial?.alergias        ?? null,
       enfermedades:    historial?.enfermedades    ?? null,
       medicamentos:    historial?.medicamentos    ?? null,
-      contacto,
+      direccion: titular.direccion,
+      distrito:  titular.distrito,
+      provincia: titular.provincia,
+      contacto: await armarContacto(titular),
     };
   }
 
@@ -98,13 +129,24 @@ export const resolverQR = async (
     const f = await Familiar.findByPk(id);
     if (!f) throw new AppError('QR no válido', 404);
     const titular = await requireTitularActivo(f.usuario_id);
-    const contacto = await armarContacto(titular);
     return {
-      tipo, id, titular_id: titular.id,
+      tipo,
+      id,
+      titular_id: titular.id,
       nombre: f.nombre,
-      subtitulo: f.relacion,
+      apellido: null,
+      dni: null,
       foto: null,
-      contacto,
+      fecha_nacimiento: null,
+      edad: null,
+      grupo_sanguineo: null,
+      alergias: null,
+      enfermedades: null,
+      medicamentos: null,
+      direccion: titular.direccion,
+      distrito:  titular.distrito,
+      provincia: titular.provincia,
+      contacto: await armarContacto(titular),
     };
   }
 
@@ -112,20 +154,98 @@ export const resolverQR = async (
   const m = await Mascota.findByPk(id);
   if (!m) throw new AppError('QR no válido', 404);
   const titular = await requireTitularActivo(m.usuario_id);
-  const contacto = await armarContacto(titular);
-  const subtituloPartes = [m.especie, m.raza].filter(Boolean) as string[];
   return {
-    tipo, id, titular_id: titular.id,
+    tipo,
+    id,
+    titular_id: titular.id,
     nombre: m.nombre,
-    subtitulo: subtituloPartes.join(' - '),
+    especie: m.especie,
+    raza: m.raza,
+    color: m.color,
+    tamano: null,
+    edad_anios: m.edad_anios,
     foto: m.foto,
-    microchip:       m.microchip,
-    perdida:         m.perdida,
-    mensaje_perdida: m.mensaje_perdida,
-    contacto,
+    descripcion: m.mensaje_perdida,
+    perdida: m.perdida,
+    distrito: titular.distrito,
+    contacto: await armarContacto(titular),
   };
 };
 
+// ----------------------------------------------------------
+// Reverse geocoding con Nominatim (OpenStreetMap, sin API key)
+// ----------------------------------------------------------
+const reverseGeocode = async (lat: number, lon: number): Promise<string | null> => {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=16&addressdetails=1`;
+    const r = await fetch(url, {
+      headers: {
+        // Nominatim exige User-Agent identificable.
+        'User-Agent': 'QuickRescue/1.1 (contact: support@quickrescue.pe)',
+        'Accept-Language': 'es',
+      },
+    });
+    if (!r.ok) return null;
+    const j = (await r.json()) as { display_name?: string };
+    return j.display_name ? j.display_name.slice(0, 255) : null;
+  } catch (e) {
+    logger.error('Nominatim reverse geocode error', e);
+    return null;
+  }
+};
+
+// ----------------------------------------------------------
+// Email "alguien escaneó el QR"
+// ----------------------------------------------------------
+const cargarPlantilla = (): string => {
+  const ruta = path.join(__dirname, '..', 'emails', 'alguien-escaneo.html');
+  return fs.readFileSync(ruta, 'utf-8');
+};
+
+const renderHTML = (
+  perfil: PerfilPublico,
+  esc: { latitud: number | null; longitud: number | null; direccion: string | null },
+): string => {
+  let html = cargarPlantilla();
+  const fecha = new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' });
+  const tipoLabel = perfil.tipo === 'mascota' ? 'tu mascota'
+                  : perfil.tipo === 'familiar' ? 'tu familiar'
+                  : 'ti';
+  const mapsLink = esc.latitud != null && esc.longitud != null
+    ? `${env.googleMapsBaseUrl}${esc.latitud},${esc.longitud}`
+    : '';
+  const ubicacionBloque = esc.latitud != null && esc.longitud != null
+    ? `<p><strong>📍 Ubicación:</strong> ${(esc.direccion ?? `${esc.latitud}, ${esc.longitud}`).replace(/</g, '&lt;')}</p>
+       <p style="text-align:center;margin:16px 0;">
+         <a href="${mapsLink}" target="_blank"
+            style="display:inline-block;background:#5BA0D0;color:#fff;padding:12px 22px;text-decoration:none;border-radius:6px;font-weight:bold;">
+           Ver en mapa
+         </a>
+       </p>`
+    : `<p style="background:#fff3cd;border-left:4px solid #ffc107;padding:10px;border-radius:4px;">
+         El transeúnte no compartió su ubicación. Solo sabemos que el QR fue escaneado.
+       </p>`;
+
+  const fotoSrc = perfil.foto && perfil.foto.length > 0
+    ? `<img src="${perfil.foto}" alt="${perfil.nombre}" width="120" height="120"
+            style="border-radius:60px;object-fit:cover;display:block;margin:0 auto;border:3px solid #5BA0D0;" />`
+    : '';
+
+  const reemplazos: Record<string, string> = {
+    '{{NOMBRE}}': perfil.nombre.replace(/</g, '&lt;'),
+    '{{TIPO_LABEL}}': tipoLabel,
+    '{{FECHA}}': fecha,
+    '{{UBICACION_BLOQUE}}': ubicacionBloque,
+    '{{FOTO_BLOQUE}}': fotoSrc,
+    '{{APP_URL}}': env.publicWebBase,
+  };
+  for (const [k, v] of Object.entries(reemplazos)) html = html.split(k).join(v);
+  return html;
+};
+
+// ----------------------------------------------------------
+// Registro de escaneo
+// ----------------------------------------------------------
 export interface DatosEscaneo {
   tipo: TipoEscaneo;
   referencia_id: number;
@@ -135,69 +255,18 @@ export interface DatosEscaneo {
   user_agent?: string | null;
 }
 
-const construirHTMLEscaneo = (
-  perfil: PerfilPublico,
-  esc: DatosEscaneo,
-): string => {
-  const fecha = new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' });
-  const tieneCoords = esc.latitud != null && esc.longitud != null;
-  const mapsLink = tieneCoords
-    ? `${env.googleMapsBaseUrl}${esc.latitud},${esc.longitud}`
-    : null;
-
-  const tipoLabel = esc.tipo === 'mascota' ? 'tu mascota'
-                  : esc.tipo === 'familiar' ? 'tu familiar'
-                  : 'ti';
-
-  return `
-<!DOCTYPE html>
-<html>
-<body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f4f4f4;margin:0;padding:20px;">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e0e0e0;">
-    <div style="background:#d62828;color:#ffffff;padding:24px;text-align:center;">
-      <h1 style="margin:0;font-size:22px;">📡 Alguien escaneó el QR de ${perfil.nombre}</h1>
-    </div>
-    <div style="padding:24px;">
-      <p style="font-size:16px;line-height:1.5;margin:0 0 16px;">
-        El código QR de ${tipoLabel} <strong>${perfil.nombre}</strong> fue escaneado.
-        Puede ser que alguien lo encontró y necesite contactarte.
-      </p>
-      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-        <tr><td style="padding:8px 0;color:#666;">📅 Fecha:</td>
-            <td style="padding:8px 0;"><strong>${fecha}</strong></td></tr>
-        ${tieneCoords ? `
-        <tr><td style="padding:8px 0;color:#666;">📍 Ubicación:</td>
-            <td style="padding:8px 0;"><strong>${esc.latitud}, ${esc.longitud}</strong></td></tr>
-        ` : ''}
-      </table>
-      ${mapsLink ? `
-      <div style="text-align:center;margin:24px 0;">
-        <a href="${mapsLink}" target="_blank"
-           style="display:inline-block;background:#d62828;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:16px;">
-          📍 Ver ubicación en Google Maps
-        </a>
-      </div>
-      ` : `
-      <p style="background:#fff3cd;border-left:4px solid #ffc107;padding:12px;margin:16px 0;border-radius:4px;">
-        El transeúnte no compartió su ubicación. Solo sabemos que el QR fue escaneado.
-      </p>
-      `}
-      <hr style="border:none;border-top:1px solid #e0e0e0;margin:24px 0;">
-      <p style="font-size:13px;color:#888;margin:0;">
-        Ingresa a la app Quick Rescue para ver el historial completo de escaneos.
-      </p>
-    </div>
-  </div>
-</body>
-</html>`;
-};
-
 /**
- * Registra el escaneo y notifica al titular por email. No falla la
- * request del transeúnte si el email falla; solo se loguea.
+ * Registra el escaneo, hace reverse geocoding (si hay coords), y notifica
+ * al titular por email. No falla si el email falla (solo loguea).
+ * El push notification queda como TODO para Fase 2 (OneSignal).
  */
 export const registrarEscaneo = async (datos: DatosEscaneo) => {
-  const perfil = await resolverQR(datos.tipo, datos.referencia_id);
+  const perfil = await obtenerPerfilPublico(datos.tipo, datos.referencia_id);
+
+  let direccion: string | null = null;
+  if (datos.latitud != null && datos.longitud != null) {
+    direccion = await reverseGeocode(datos.latitud, datos.longitud);
+  }
 
   const escaneo = await Escaneo.create({
     tipo:          datos.tipo,
@@ -205,19 +274,32 @@ export const registrarEscaneo = async (datos: DatosEscaneo) => {
     titular_id:    perfil.titular_id,
     latitud:       datos.latitud  ?? null,
     longitud:      datos.longitud ?? null,
-    ip:            datos.ip       ?? null,
-    user_agent:    datos.user_agent ? datos.user_agent.slice(0, 500) : null,
+    direccion,
+    ip:            datos.ip ?? null,
+    user_agent:    datos.user_agent ?? null,
   });
 
-  // Notificar al titular (email del usuario, no del familiar)
+  // Email al titular
   const titular = await Usuario.findByPk(perfil.titular_id);
   if (titular?.email) {
-    const html = construirHTMLEscaneo(perfil, datos);
+    const html = renderHTML(perfil, {
+      latitud: datos.latitud ?? null,
+      longitud: datos.longitud ?? null,
+      direccion,
+    });
     enviarEmail({
       to: titular.email,
       subject: `Alguien escaneó el QR de ${perfil.nombre}`,
       html,
     }).catch((e) => logger.error('Error enviando email de escaneo', e));
+  }
+
+  // TODO Fase 2: push con OneSignal usando titular.onesignal_player_id
+  if (titular?.onesignal_player_id) {
+    logger.info(
+      `[push placeholder] enviar a player_id=${titular.onesignal_player_id} ` +
+      `escaneo=${escaneo.id}`,
+    );
   }
 
   return { escaneo_id: escaneo.id, notificado: !!titular?.email };

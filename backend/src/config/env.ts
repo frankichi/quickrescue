@@ -40,4 +40,12 @@ export const env = {
     .map((s) => s.trim()),
 
   googleMapsBaseUrl: optional('GOOGLE_MAPS_BASE_URL', 'https://www.google.com/maps?q='),
+
+  publicWebBase: optional('PUBLIC_WEB_BASE', 'https://quickrescue.vercel.app'),
+
+  cloudinary: {
+    cloudName: optional('CLOUDINARY_CLOUD_NAME', ''),
+    apiKey:    optional('CLOUDINARY_API_KEY', ''),
+    apiSecret: optional('CLOUDINARY_API_SECRET', ''),
+  },
 };

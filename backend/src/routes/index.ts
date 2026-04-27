@@ -7,6 +7,9 @@ import historialRoutes from './historial.routes';
 import ubicacionRoutes from './ubicacion.routes';
 import qrRoutes        from './qr.routes';
 import escaneosRoutes  from './escaneos.routes';
+import fotoRoutes      from './foto.routes';
+import compraRoutes    from './compra.routes';
+import tiendaRoutes    from './tienda.routes';
 
 const api = Router();
 
@@ -15,8 +18,9 @@ api.get('/health', (_req, res) => {
   res.json({ success: true, data: { status: 'ok', timestamp: new Date().toISOString() } });
 });
 
-// Públicas (sin auth) — usadas por transeúntes que escanean el QR físico.
-api.use('/qr',               qrRoutes);
+// Públicas (sin auth)
+api.use('/qr',     qrRoutes);     // /qr/:tipo/:id/{publico,escaneo}
+api.use('/tienda', tiendaRoutes); // /tienda/productos
 
 // Privadas (con JWT)
 api.use('/auth',             authRoutes);
@@ -26,5 +30,7 @@ api.use('/mascotas',         mascotaRoutes);
 api.use('/historial-medico', historialRoutes);
 api.use('/ubicaciones',      ubicacionRoutes);
 api.use('/escaneos',         escaneosRoutes);
+api.use('/fotos',            fotoRoutes);
+api.use('/compras',          compraRoutes);
 
 export default api;

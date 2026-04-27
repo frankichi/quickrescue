@@ -10,6 +10,7 @@ export interface EscaneoAttributes {
   titular_id: number;
   latitud: number | null;
   longitud: number | null;
+  direccion: string | null;
   ip: string | null;
   user_agent: string | null;
   creado_en: Date;
@@ -17,7 +18,7 @@ export interface EscaneoAttributes {
 
 type Creacion = Optional<
   EscaneoAttributes,
-  'id' | 'latitud' | 'longitud' | 'ip' | 'user_agent' | 'creado_en'
+  'id' | 'latitud' | 'longitud' | 'direccion' | 'ip' | 'user_agent' | 'creado_en'
 >;
 
 export class Escaneo extends Model<EscaneoAttributes, Creacion> implements EscaneoAttributes {
@@ -27,6 +28,7 @@ export class Escaneo extends Model<EscaneoAttributes, Creacion> implements Escan
   declare titular_id: number;
   declare latitud: number | null;
   declare longitud: number | null;
+  declare direccion: string | null;
   declare ip: string | null;
   declare user_agent: string | null;
   declare creado_en: Date;
@@ -38,10 +40,11 @@ Escaneo.init(
     tipo:          { type: DataTypes.ENUM('usuario', 'familiar', 'mascota'), allowNull: false },
     referencia_id: { type: DataTypes.INTEGER,    allowNull: false },
     titular_id:    { type: DataTypes.INTEGER,    allowNull: false },
-    latitud:       { type: DataTypes.DECIMAL(10, 7), allowNull: true },
-    longitud:      { type: DataTypes.DECIMAL(10, 7), allowNull: true },
+    latitud:       { type: DataTypes.DECIMAL(10, 8), allowNull: true },
+    longitud:      { type: DataTypes.DECIMAL(11, 8), allowNull: true },
+    direccion:     { type: DataTypes.STRING(255), allowNull: true },
     ip:            { type: DataTypes.STRING(45),  allowNull: true },
-    user_agent:    { type: DataTypes.STRING(500), allowNull: true },
+    user_agent:    { type: DataTypes.TEXT,         allowNull: true },
     creado_en:     { type: DataTypes.DATE,        allowNull: false, defaultValue: DataTypes.NOW },
   },
   {

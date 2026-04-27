@@ -8,10 +8,11 @@ export interface FamiliarAttributes {
   telefono: string;
   email: string | null;
   relacion: string;
+  foto: string | null;
   creado_en: Date;
 }
 
-type Creacion = Optional<FamiliarAttributes, 'id' | 'email' | 'creado_en'>;
+type Creacion = Optional<FamiliarAttributes, 'id' | 'email' | 'foto' | 'creado_en'>;
 
 export class Familiar extends Model<FamiliarAttributes, Creacion> implements FamiliarAttributes {
   declare id: number;
@@ -20,6 +21,7 @@ export class Familiar extends Model<FamiliarAttributes, Creacion> implements Fam
   declare telefono: string;
   declare email: string | null;
   declare relacion: string;
+  declare foto: string | null;
   declare creado_en: Date;
 }
 
@@ -31,6 +33,7 @@ Familiar.init(
     telefono:   { type: DataTypes.STRING(20),  allowNull: false },
     email:      { type: DataTypes.STRING(120), allowNull: true },
     relacion:   { type: DataTypes.STRING(40),  allowNull: false },
+    foto:       { type: DataTypes.STRING(500), allowNull: true },
     creado_en:  { type: DataTypes.DATE,        allowNull: false, defaultValue: DataTypes.NOW },
   },
   {

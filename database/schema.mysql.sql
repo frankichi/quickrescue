@@ -11,6 +11,7 @@ CREATE DATABASE IF NOT EXISTS quickrescue
 USE quickrescue;
 
 -- Drop en orden inverso por las FKs
+DROP TABLE IF EXISTS compras;
 DROP TABLE IF EXISTS escaneos_qr;
 DROP TABLE IF EXISTS ubicaciones;
 DROP TABLE IF EXISTS historial_medico;
@@ -29,7 +30,8 @@ CREATE TABLE usuarios (
     dni                VARCHAR(15)    DEFAULT NULL,
     email              VARCHAR(120)   NOT NULL,
     password_hash      VARCHAR(255)   NOT NULL,            -- bcrypt
-    foto               VARCHAR(255)   DEFAULT NULL,        -- URL o ruta
+    foto                 VARCHAR(500) DEFAULT NULL,        -- URL Cloudinary
+    onesignal_player_id  VARCHAR(100) DEFAULT NULL,        -- Push ID Fase 2
     fecha_nacimiento   DATE           DEFAULT NULL,
     direccion          VARCHAR(200)   DEFAULT NULL,
     distrito           VARCHAR(60)    DEFAULT NULL,
@@ -54,6 +56,7 @@ CREATE TABLE familiares (
     telefono     VARCHAR(20)  NOT NULL,
     email        VARCHAR(120) DEFAULT NULL,
     relacion     VARCHAR(40)  NOT NULL,                    -- "Hijo", "Esposa", etc.
+    foto         VARCHAR(500) DEFAULT NULL,
     creado_en    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY ix_familiares_usuario (usuario_id),
@@ -143,15 +146,39 @@ CREATE TABLE escaneos_qr (
     tipo            ENUM('usuario','familiar','mascota') NOT NULL,
     referencia_id   INT UNSIGNED      NOT NULL,
     titular_id      INT UNSIGNED      NOT NULL,
-    latitud         DECIMAL(10,7)     DEFAULT NULL,
-    longitud        DECIMAL(10,7)     DEFAULT NULL,
+    latitud         DECIMAL(10,8)     DEFAULT NULL,
+    longitud        DECIMAL(11,8)     DEFAULT NULL,
+    direccion       VARCHAR(255)      DEFAULT NULL,
     ip              VARCHAR(45)       DEFAULT NULL,
-    user_agent      VARCHAR(500)      DEFAULT NULL,
+    user_agent      TEXT              DEFAULT NULL,
     creado_en       DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY ix_escaneos_titular_fecha (titular_id, creado_en),
-    KEY ix_escaneos_ref (tipo, referencia_id),
+    KEY idx_escaneos_titular_fecha (titular_id, creado_en),
+    KEY idx_escaneos_ref (tipo, referencia_id),
     CONSTRAINT fk_escaneos_titular
         FOREIGN KEY (titular_id) REFERENCES usuarios (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+--  COMPRAS
+-- --------------------------------------------------------
+CREATE TABLE compras (
+    id                INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+    usuario_id        INT UNSIGNED  NOT NULL,
+    producto          ENUM('collar','pulsera','llavero') NOT NULL,
+    destinatario_tipo ENUM('usuario','familiar','mascota') NOT NULL,
+    destinatario_id   INT UNSIGNED  NOT NULL,
+    precio            DECIMAL(10,2) NOT NULL,
+    estado            ENUM('pendiente','confirmado','enviado','entregado','cancelado')
+                      NOT NULL DEFAULT 'pendiente',
+    notas             TEXT          DEFAULT NULL,
+    creado_en         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP
+                      ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_compras_usuario_fecha (usuario_id, creado_en),
+    CONSTRAINT fk_compras_usuario
+        FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
