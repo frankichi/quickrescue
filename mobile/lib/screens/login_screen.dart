@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../config/app_config.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -8,22 +11,43 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const String _txtNormal     = 'Ingresando…';
-  static const String _txtColdStart  = 'Despertando servidor (hasta 90s)…';
-  static const Duration _umbralColdStart = Duration(seconds: 8);
+  // Mensajes progresivos del botón cargando.
+  static const _msgInicial      = 'Ingresando…';
+  static const _msg5s           = 'Conectando con el servidor…';
+  static const _msg20s          = 'El servidor está despertando, un momento…';
+  static const _msg45s          = 'Está tardando más de lo esperado. Si tienes UptimeRobot configurado, esto no debería pasar.';
+  static const _msgTimeoutFinal = 'No se pudo conectar al servidor. Verifica tu internet o intenta de nuevo.';
 
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _pass  = TextEditingController();
   bool _cargando = false;
   String? _error;
-  String _txtCargando = _txtNormal;
-  Timer? _timerColdStart;
+  String _txtCargando = _msgInicial;
+  final List<Timer> _timers = [];
 
   @override
   void dispose() {
-    _timerColdStart?.cancel();
-    _email.dispose(); _pass.dispose(); super.dispose();
+    for (final t in _timers) { t.cancel(); }
+    _timers.clear();
+    _email.dispose(); _pass.dispose();
+    super.dispose();
+  }
+
+  void _cancelarTimers() {
+    for (final t in _timers) { t.cancel(); }
+    _timers.clear();
+  }
+
+  void _arrancarMensajesProgresivos() {
+    void programar(Duration d, String txt) {
+      _timers.add(Timer(d, () {
+        if (mounted && _cargando) setState(() => _txtCargando = txt);
+      }));
+    }
+    programar(const Duration(seconds: 5),  _msg5s);
+    programar(const Duration(seconds: 20), _msg20s);
+    programar(const Duration(seconds: 45), _msg45s);
   }
 
   Future<void> _login() async {
@@ -31,29 +55,132 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _cargando = true;
       _error = null;
-      _txtCargando = _txtNormal;
+      _txtCargando = _msgInicial;
     });
-    // A los 8s asumimos cold-start de Render y avisamos en el botón.
-    _timerColdStart = Timer(_umbralColdStart, () {
-      if (mounted && _cargando) {
-        setState(() => _txtCargando = _txtColdStart);
-      }
-    });
+    _cancelarTimers();
+    _arrancarMensajesProgresivos();
+
     try {
       await AuthService.login(_email.text.trim(), _pass.text);
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
-    } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+    } catch (e, stack) {
+      if (!mounted) return;
+      final detalles = _detallarError(e);
+      setState(() => _error = detalles);
+      // Además del banner inline, snackbar con la URL diagnóstica.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 8),
+          backgroundColor: Colors.red.shade900,
+          content: Text(
+            '${e.runtimeType}\n→ ${AppConfig.effectiveApiUrl}\n${e.toString()}',
+            style: const TextStyle(fontSize: 12, color: Colors.white),
+          ),
+          action: SnackBarAction(
+            label: 'Detalle',
+            textColor: Colors.white,
+            onPressed: () => _mostrarStackTrace(e, stack),
+          ),
+        ),
+      );
     } finally {
-      _timerColdStart?.cancel();
+      _cancelarTimers();
       if (mounted) setState(() => _cargando = false);
     }
+  }
+
+  String _detallarError(Object e) {
+    final tipo = e.runtimeType.toString();
+    final url  = AppConfig.effectiveApiUrl;
+    String contexto;
+    if (e is TimeoutException) {
+      contexto = '$_msgTimeoutFinal\nEl servidor no respondió.';
+    } else if (e is SocketException) {
+      contexto = 'Error de red — verifica tu conexión a internet.';
+    } else {
+      contexto = e.toString();
+    }
+    return '$contexto\n\n[$tipo @ $url]';
+  }
+
+  void _mostrarStackTrace(Object e, StackTrace stack) {
+    final txt = '${e.runtimeType}: $e\n\n$stack';
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stack trace'),
+        content: SingleChildScrollView(
+          child: SelectableText(txt, style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
+        ),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.copy),
+            label: const Text('Copiar'),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: txt));
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _abrirDebugDialog() {
+    final info = AppConfig.debugInfo();
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Debug info'),
+        content: SelectableText(info,
+            style: const TextStyle(fontSize: 13, fontFamily: 'monospace')),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.copy),
+            label: const Text('Copy to clipboard'),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: info));
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Copiado')),
+                );
+                Navigator.pop(ctx);
+              }
+            },
+          ),
+          TextButton(
+            onPressed: () { Navigator.pop(ctx); Navigator.pushNamed(context, '/diagnostic'); },
+            child: const Text('Diagnóstico avanzado'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report, color: Color(0xFFD62828)),
+            tooltip: 'Debug',
+            onPressed: _abrirDebugDialog,
+          ),
+        ],
+      ),
+      extendBodyBehindAppBar: true,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -93,7 +220,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Text(_error!, style: const TextStyle(color: Color(0xFFD62828))),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFD62828)),
+                      ),
+                      child: SelectableText(_error!,
+                          style: const TextStyle(color: Color(0xFFD62828), fontSize: 13)),
+                    ),
                   ],
                   const SizedBox(height: 20),
                   ElevatedButton(
@@ -113,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Flexible(
                               child: Text(
                                 _txtCargando,
-                                style: const TextStyle(fontSize: 15),
+                                style: const TextStyle(fontSize: 14),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),

@@ -7,6 +7,7 @@ import 'screens/sos_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/qr_scanner_screen.dart';
 import 'screens/qr_detail_screen.dart';
+import 'screens/diagnostic_screen.dart';
 
 void main() {
   runApp(const QuickRescueApp());
@@ -38,6 +39,7 @@ class QuickRescueApp extends StatelessWidget {
         '/profile':     (_) => const ProfileScreen(),
         '/qr-scanner':  (_) => const QrScannerScreen(),
         '/qr-detail':   (_) => const QrDetailScreen(),
+        '/diagnostic':  (_) => const DiagnosticScreen(),
       },
     );
   }
