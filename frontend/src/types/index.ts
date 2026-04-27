@@ -19,6 +19,7 @@ export interface Familiar {
   telefono: string;
   email: string | null;
   relacion: string;
+  foto: string | null;
   creado_en: string;
 }
 
@@ -65,28 +66,48 @@ export interface Ubicacion {
 export type TipoQR = 'usuario' | 'familiar' | 'mascota';
 
 export interface ContactoTitular {
-  nombre_titular: string;
+  nombre: string;
   telefono: string | null;
-  relacion: string | null;
-  familiares: Array<{ nombre: string; telefono: string; relacion: string }>;
 }
 
-export interface PerfilPublico {
-  tipo: TipoQR;
+export interface PerfilPublicoUsuario {
+  tipo: 'usuario' | 'familiar';
   id: number;
   titular_id: number;
   nombre: string;
-  subtitulo: string;
+  apellido: string | null;
+  dni: string | null;
   foto: string | null;
-  grupo_sanguineo?: string | null;
-  alergias?: string | null;
-  enfermedades?: string | null;
-  medicamentos?: string | null;
-  microchip?: string | null;
-  perdida?: boolean;
-  mensaje_perdida?: string | null;
+  fecha_nacimiento: string | null;
+  edad: number | null;
+  grupo_sanguineo: string | null;
+  alergias: string | null;
+  enfermedades: string | null;
+  medicamentos: string | null;
+  direccion: string | null;
+  distrito: string | null;
+  provincia: string | null;
   contacto: ContactoTitular;
 }
+
+export interface PerfilPublicoMascota {
+  tipo: 'mascota';
+  id: number;
+  titular_id: number;
+  nombre: string;
+  especie: string;
+  raza: string | null;
+  color: string | null;
+  tamano: string | null;
+  edad_anios: number | null;
+  foto: string | null;
+  descripcion: string | null;
+  perdida: boolean;
+  distrito: string | null;
+  contacto: ContactoTitular;
+}
+
+export type PerfilPublico = PerfilPublicoUsuario | PerfilPublicoMascota;
 
 export interface Escaneo {
   id: number;
@@ -95,6 +116,32 @@ export interface Escaneo {
   nombre_referencia: string;
   latitud: number | null;
   longitud: number | null;
+  direccion: string | null;
+  creado_en: string;
+}
+
+export type ProductoQR = 'collar' | 'pulsera' | 'llavero';
+export type DestinatarioTipo = 'usuario' | 'familiar' | 'mascota';
+export type EstadoCompra =
+  | 'pendiente' | 'confirmado' | 'enviado' | 'entregado' | 'cancelado';
+
+export interface Producto {
+  id: ProductoQR;
+  nombre: string;
+  precio: number;
+  descripcion: string;
+}
+
+export interface Compra {
+  id: number;
+  producto: ProductoQR;
+  producto_nombre: string;
+  destinatario_tipo: DestinatarioTipo;
+  destinatario_id: number;
+  destinatario_nombre: string;
+  precio: number;
+  estado: EstadoCompra;
+  notas: string | null;
   creado_en: string;
 }
 

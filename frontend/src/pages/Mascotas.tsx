@@ -1,5 +1,6 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import * as svc from '../services/mascota.service';
+import * as fotoSvc from '../services/foto.service';
 import { Mascota, EspecieMascota } from '../types';
 import { errorMessage } from '../services/api';
 import QRModal from '../components/QRModal';
@@ -30,6 +31,12 @@ export default function Mascotas() {
   const [err, setErr] = useState('');
   const [mostrarForm, setMostrarForm] = useState(false);
   const [qrAbierto, setQrAbierto] = useState<Mascota | null>(null);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+
+  const onFotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFotoFile(e.target.files?.[0] ?? null);
+  };
 
   const cargar = () => {
     setCargando(true);
@@ -63,12 +70,20 @@ export default function Mascotas() {
       mensaje_perdida: form.mensaje_perdida || null,
     };
     try {
-      if (editando) {
-        await svc.actualizar(editando, payload);
-      } else {
-        await svc.crear(payload);
+      const guardada = editando
+        ? await svc.actualizar(editando, payload)
+        : await svc.crear(payload);
+      if (fotoFile) {
+        setSubiendoFoto(true);
+        try {
+          await fotoSvc.subirFotoMascota(guardada.id, fotoFile);
+        } catch (e) {
+          setErr(`Mascota guardada pero la foto falló: ${errorMessage(e)}`);
+        } finally {
+          setSubiendoFoto(false);
+        }
       }
-      setForm(VACIO); setEditando(null); setMostrarForm(false);
+      setForm(VACIO); setEditando(null); setMostrarForm(false); setFotoFile(null);
       cargar();
     } catch (e) {
       setErr(errorMessage(e));
@@ -158,9 +173,11 @@ export default function Mascotas() {
             </div>
           </div>
           <div>
-            <label>Foto (URL)</label>
-            <input value={form.foto} onChange={set('foto')} />
+            <label>Foto (URL — opcional, también puedes subir abajo)</label>
+            <input value={form.foto} onChange={set('foto')} placeholder="https://…" />
           </div>
+          <label>Subir foto desde tu dispositivo (máx 5MB)</label>
+          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={onFotoChange} />
           <div style={{ marginTop: 12 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input
@@ -183,8 +200,10 @@ export default function Mascotas() {
           )}
           {err && <p className="error-msg">{err}</p>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" className="primary">{editando ? 'Actualizar' : 'Crear'}</button>
-            <button type="button" className="primary" style={{ background:'#6b7280' }} onClick={cancelar}>Cancelar</button>
+            <button type="submit" className="primary" disabled={subiendoFoto}>
+              {subiendoFoto ? 'Subiendo foto…' : (editando ? 'Actualizar' : 'Crear')}
+            </button>
+            <button type="button" className="primary" style={{ background:'#7F8C8D' }} onClick={cancelar}>Cancelar</button>
           </div>
         </form>
       )}
@@ -195,23 +214,28 @@ export default function Mascotas() {
         <table className="table">
           <thead>
             <tr>
-              <th>Nombre</th><th>Especie</th><th>Raza</th><th>Edad</th><th>Estado</th><th></th>
+              <th></th><th>Nombre</th><th>Especie</th><th>Raza</th><th>Edad</th><th>Estado</th><th></th>
             </tr>
           </thead>
           <tbody>
             {items.map((m) => (
               <tr key={m.id}>
+                <td>
+                  {m.foto
+                    ? <img src={m.foto} alt={m.nombre} className="avatar-mini" />
+                    : <div className="avatar-mini" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🐾</div>}
+                </td>
                 <td>{m.nombre}</td>
                 <td style={{ textTransform: 'capitalize' }}>{m.especie}</td>
                 <td>{m.raza || '—'}</td>
                 <td>{m.edad_anios != null ? `${m.edad_anios} año${m.edad_anios === 1 ? '' : 's'}` : '—'}</td>
                 <td>
                   {m.perdida
-                    ? <span style={{ color: '#dc2626', fontWeight: 600 }}>🚨 Perdida</span>
-                    : <span style={{ color: '#16a34a' }}>En casa</span>}
+                    ? <span className="badge danger">🚨 Perdida</span>
+                    : <span className="badge success">En casa</span>}
                 </td>
                 <td className="row-actions">
-                  <button onClick={() => setQrAbierto(m)}>Ver QR</button>
+                  <button onClick={() => setQrAbierto(m)}>🔲 Ver QR</button>
                   <button onClick={() => editar(m)}>Editar</button>
                   <button onClick={() => eliminar(m.id)}>Eliminar</button>
                 </td>

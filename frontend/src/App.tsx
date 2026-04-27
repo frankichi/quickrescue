@@ -8,6 +8,7 @@ import Mascotas from './pages/Mascotas';
 import HistorialMedico from './pages/HistorialMedico';
 import Ubicaciones from './pages/Ubicaciones';
 import Escaneos from './pages/Escaneos';
+import Tienda from './pages/Tienda';
 import PublicQR from './pages/PublicQR';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/historial"   element={<HistorialMedico />} />
         <Route path="/ubicaciones" element={<Ubicaciones />} />
         <Route path="/escaneos"    element={<Escaneos />} />
+        <Route path="/tienda"      element={<Tienda />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

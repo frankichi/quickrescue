@@ -1,14 +1,18 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import * as svc from '../services/usuario.service';
+import * as fotoSvc from '../services/foto.service';
 import { Usuario } from '../types';
 import { errorMessage } from '../services/api';
+import QRModal from '../components/QRModal';
 
 export default function Profile() {
   const [form, setForm] = useState<Partial<Usuario>>({});
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  const [qrAbierto, setQrAbierto] = useState(false);
 
   useEffect(() => {
     svc.obtenerMiPerfil()
@@ -34,12 +38,54 @@ export default function Profile() {
     }
   };
 
+  const onFotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMsg(''); setErr(''); setSubiendoFoto(true);
+    try {
+      const url = await fotoSvc.subirFotoUsuario(file);
+      setForm((f) => ({ ...f, foto: url }));
+      setMsg('Foto actualizada.');
+    } catch (e) {
+      setErr(errorMessage(e));
+    } finally {
+      setSubiendoFoto(false);
+    }
+  };
+
   if (cargando) return <div className="loader">Cargando…</div>;
 
   return (
     <div>
-      <h1 className="page-title">Mi perfil</h1>
+      <div className="toolbar">
+        <h1 className="page-title" style={{ margin: 0 }}>Mi perfil</h1>
+        {form.id && (
+          <button className="btn-add" onClick={() => setQrAbierto(true)}>🔲 Mi código QR</button>
+        )}
+      </div>
+
       <form className="form-card" onSubmit={handleSubmit}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            {form.foto
+              ? <img src={form.foto} alt="Mi foto" style={{
+                  width: 96, height: 96, borderRadius: '50%', objectFit: 'cover',
+                  border: '3px solid #5BA0D0',
+                }} />
+              : <div style={{
+                  width: 96, height: 96, borderRadius: '50%', background: '#F8F9FA',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 40, border: '3px solid #E3E9EF',
+                }}>👤</div>}
+          </div>
+          <div style={{ flex: 1 }}>
+            <label>Mi foto</label>
+            <input type="file" accept="image/jpeg,image/png,image/webp"
+                   onChange={onFotoChange} disabled={subiendoFoto} />
+            {subiendoFoto && <p style={{ color: '#5BA0D0', fontSize: 13 }}>Subiendo…</p>}
+          </div>
+        </div>
+
         <div className="row-2">
           <div>
             <label>Nombre</label>
@@ -76,15 +122,21 @@ export default function Profile() {
           </div>
         </div>
 
-        <label>URL de foto (opcional)</label>
-        <input value={form.foto || ''} onChange={set('foto')} placeholder="https://..." />
-
         {msg && <p className="success-msg">{msg}</p>}
         {err && <p className="error-msg">{err}</p>}
         <button type="submit" className="primary" disabled={guardando}>
           {guardando ? 'Guardando…' : 'Guardar cambios'}
         </button>
       </form>
+
+      {qrAbierto && form.id && (
+        <QRModal
+          tipo="usuario"
+          id={form.id}
+          nombre={`${form.nombre ?? ''} ${form.apellido ?? ''}`.trim()}
+          onClose={() => setQrAbierto(false)}
+        />
+      )}
     </div>
   );
 }

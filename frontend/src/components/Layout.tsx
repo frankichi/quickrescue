@@ -20,13 +20,14 @@ export default function Layout() {
           <span className="brand-dot" /> Quick Rescue
         </Link>
         <nav>
-          <NavLink to="/"            end className={linkClass}>📊 Dashboard</NavLink>
+          <NavLink to="/"            end className={linkClass}>📊 Inicio</NavLink>
           <NavLink to="/perfil"          className={linkClass}>👤 Mi perfil</NavLink>
           <NavLink to="/familiares"      className={linkClass}>👨‍👩‍👧 Familiares</NavLink>
           <NavLink to="/mascotas"        className={linkClass}>🐾 Mascotas</NavLink>
           <NavLink to="/historial"       className={linkClass}>🩺 Historial médico</NavLink>
           <NavLink to="/ubicaciones"     className={linkClass}>📍 Ubicaciones</NavLink>
-          <NavLink to="/escaneos"        className={linkClass}>📡 Historial de escaneos</NavLink>
+          <NavLink to="/escaneos"        className={linkClass}>🔔 Alertas</NavLink>
+          <NavLink to="/tienda"          className={linkClass}>🛒 Tienda</NavLink>
         </nav>
         <div className="user-box">
           <div className="user-name">{usuario?.nombre} {usuario?.apellido}</div>

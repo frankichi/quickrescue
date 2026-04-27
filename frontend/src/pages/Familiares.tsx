@@ -1,5 +1,6 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import * as svc from '../services/familiar.service';
+import * as fotoSvc from '../services/foto.service';
 import { Familiar } from '../types';
 import { errorMessage } from '../services/api';
 import QRModal from '../components/QRModal';
@@ -10,10 +11,12 @@ export default function Familiares() {
   const [items, setItems] = useState<Familiar[]>([]);
   const [editando, setEditando] = useState<number | null>(null);
   const [form, setForm] = useState(VACIO);
+  const [foto, setFoto] = useState<File | null>(null);
   const [cargando, setCargando] = useState(true);
   const [err, setErr] = useState('');
   const [mostrarForm, setMostrarForm] = useState(false);
   const [qrAbierto, setQrAbierto] = useState<Familiar | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   const cargar = () => {
     setCargando(true);
@@ -28,16 +31,29 @@ export default function Familiares() {
   const set = (k: keyof typeof VACIO) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const onFotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFoto(e.target.files?.[0] ?? null);
+  };
+
   const guardar = async (e: FormEvent) => {
     e.preventDefault();
     setErr('');
     try {
-      if (editando) {
-        await svc.actualizar(editando, form);
-      } else {
-        await svc.crear(form);
+      const guardado = editando
+        ? await svc.actualizar(editando, form)
+        : await svc.crear(form);
+      // Si el usuario eligió una foto nueva, subirla después de tener el id.
+      if (foto) {
+        setSubiendoFoto(true);
+        try {
+          await fotoSvc.subirFotoFamiliar(guardado.id, foto);
+        } catch (e) {
+          setErr(`Familiar guardado pero la foto falló: ${errorMessage(e)}`);
+        } finally {
+          setSubiendoFoto(false);
+        }
       }
-      setForm(VACIO); setEditando(null); setMostrarForm(false);
+      setForm(VACIO); setEditando(null); setMostrarForm(false); setFoto(null);
       cargar();
     } catch (e) {
       setErr(errorMessage(e));
@@ -49,6 +65,7 @@ export default function Familiares() {
       nombre: f.nombre, telefono: f.telefono,
       email: f.email || '', relacion: f.relacion,
     });
+    setFoto(null);
     setEditando(f.id);
     setMostrarForm(true);
   };
@@ -64,13 +81,13 @@ export default function Familiares() {
   };
 
   const cancelar = () => {
-    setForm(VACIO); setEditando(null); setMostrarForm(false);
+    setForm(VACIO); setEditando(null); setMostrarForm(false); setFoto(null);
   };
 
   return (
     <div>
       <div className="toolbar">
-        <h1 className="page-title" style={{ margin: 0 }}>Familiares de contacto</h1>
+        <h1 className="page-title" style={{ margin: 0 }}>Familiares</h1>
         {!mostrarForm && (
           <button className="btn-add" onClick={() => setMostrarForm(true)}>+ Agregar</button>
         )}
@@ -97,14 +114,18 @@ export default function Familiares() {
               <input value={form.telefono} onChange={set('telefono')} required />
             </div>
             <div>
-              <label>Email (recibe alertas SOS)</label>
+              <label>Email (recibe alertas)</label>
               <input type="email" value={form.email} onChange={set('email')} />
             </div>
           </div>
+          <label>Foto (opcional, máx 5MB)</label>
+          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={onFotoChange} />
           {err && <p className="error-msg">{err}</p>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" className="primary">{editando ? 'Actualizar' : 'Crear'}</button>
-            <button type="button" className="primary" style={{ background:'#6b7280' }} onClick={cancelar}>Cancelar</button>
+            <button type="submit" className="primary" disabled={subiendoFoto}>
+              {subiendoFoto ? 'Subiendo foto…' : (editando ? 'Actualizar' : 'Crear')}
+            </button>
+            <button type="button" className="primary" style={{ background:'#7F8C8D' }} onClick={cancelar}>Cancelar</button>
           </div>
         </form>
       )}
@@ -113,14 +134,19 @@ export default function Familiares() {
       : items.length === 0 ? <div className="empty">No tienes familiares registrados aún.</div>
       : (
         <table className="table">
-          <thead><tr><th>Nombre</th><th>Relación</th><th>Teléfono</th><th>Email</th><th></th></tr></thead>
+          <thead><tr><th></th><th>Nombre</th><th>Relación</th><th>Teléfono</th><th>Email</th><th></th></tr></thead>
           <tbody>
             {items.map((f) => (
               <tr key={f.id}>
+                <td>
+                  {f.foto
+                    ? <img src={f.foto} alt={f.nombre} className="avatar-mini" />
+                    : <div className="avatar-mini" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>}
+                </td>
                 <td>{f.nombre}</td><td>{f.relacion}</td>
                 <td>{f.telefono}</td><td>{f.email || '—'}</td>
                 <td className="row-actions">
-                  <button onClick={() => setQrAbierto(f)}>Ver QR</button>
+                  <button onClick={() => setQrAbierto(f)}>🔲 Ver QR</button>
                   <button onClick={() => editar(f)}>Editar</button>
                   <button onClick={() => eliminar(f.id)}>Eliminar</button>
                 </td>
