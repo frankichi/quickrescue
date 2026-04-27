@@ -1,83 +1,76 @@
 # Quick Rescue — Mobile (Flutter)
 
-App Android (y iOS, con un poco de setup extra) que el titular del usuario
-lleva en su celular. Permite:
+App Android (y iOS, con un poco de setup extra) que el TITULAR (afiliado)
+usa para gestionar a sus seres queridos protegidos por Quick Rescue.
+
+## ¿Qué hace la app del titular?
 - Iniciar sesión y registrarse desde la propia app
-- Ver mapa con su ubicación actual sobre **OpenStreetMap** (sin API key)
-- Reportar ubicación automáticamente cada 5 minutos en foreground
-- Pulsar el botón SOS que envía email a sus familiares con la ubicación
-- Escanear un QR de otro usuario para ver su perfil público de emergencia
+- Dashboard con resumen: perfil, conteo de familiares y mascotas, últimos escaneos
+- CRUD de **familiares** (contactos protegidos): nombre, teléfono, relación
+- CRUD de **mascotas**: nombre, especie, raza, microchip, marcado de "perdida"
+- Generar el **QR físico** para cada familiar/mascota (compartible por WhatsApp/email)
+- Ver el **historial de escaneos** que han hecho terceros sobre los QR del titular
+- Lector de QR opcional (si el titular ve a alguien con un QR Quick Rescue)
+
+> El concepto del producto: el TITULAR registra a sus seres queridos y
+> reparte/coloca los QR físicos. Cuando un transeúnte se encuentra a
+> alguien perdido y escanea el QR con la **cámara nativa** de su celular,
+> la página pública del QR se abre con datos para contactar al titular,
+> y este recibe un email automático del escaneo.
 
 ## Setup local
 
 ```bash
 flutter pub get
-
-# Para ejecutar en emulador/dispositivo conectado
-flutter run
-
-# Para compilar APK release
-flutter build apk --release
-# Output: build/app/outputs/flutter-apk/app-release.apk
+flutter run                    # emulador / dispositivo conectado
+flutter build apk --release    # APK release en build/app/outputs/flutter-apk/
 ```
 
 ## Configuración
 
-### URL del backend
-Editar `lib/config/app_config.dart`:
-```dart
-static const String apiBaseUrl = 'https://tu-backend.onrender.com/api/v1';
+El backend y la URL pública se inyectan en compile time vía `--dart-define`:
+
+```bash
+flutter build apk --release \
+  --dart-define=API_BASE_URL=https://quickrescue-api.onrender.com/api/v1 \
+  --dart-define=PUBLIC_WEB_BASE=https://quickrescue.vercel.app
 ```
 
-En CI/CD (GitHub Actions) este valor se inyecta automáticamente desde el
-secret `API_BASE_URL`. Ver `.github/workflows/build-apk.yml`.
+En CI/CD esto lo hace `.github/workflows/build-apk.yml` con los secrets
+correspondientes. Defaults seguros viven en `lib/config/app_config.dart`.
 
 ### Mapa
-Quick Rescue usa **OpenStreetMap** vía `flutter_map`. **No requiere API
-key ni billing.** Solo se exige cumplir la attribution (ya incluida en la
-pantalla del mapa).
+Quick Rescue usa **OpenStreetMap** (`flutter_map`). Sin API key.
 
 ### Permisos
 Declarados en `AndroidManifest.xml`:
-- `INTERNET`
-- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` — para el GPS
-- `CAMERA` — para el lector de QR
+- `INTERNET`, `ACCESS_NETWORK_STATE`
+- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` — para los pocos casos
+  en que el titular reporta una ubicación manualmente
+- `CAMERA` — para el lector de QR opcional
 - `CALL_PHONE` — para llamar a familiares desde el detalle del QR
-
-Los permisos de cámara y ubicación se piden en runtime cuando el usuario
-usa la funcionalidad correspondiente.
 
 ## Estructura
 
 ```
 lib/
-├── main.dart                  Entry point + rutas nombradas
-├── config/app_config.dart     URL del backend, otras constantes
-├── models/                    Clases Dart de las entidades
-├── services/                  Lógica HTTP, autenticación, GPS
-├── screens/                   Una pantalla por archivo
-└── widgets/                   Componentes reutilizables
+├── main.dart                  Entry + rutas
+├── config/app_config.dart     URL backend, URL pública, timeout
+├── models/                    Familiar, Mascota, Escaneo, Usuario
+├── services/                  http, auth, familiar, mascota, escaneo, location
+└── screens/                   Splash, Login, Register, Home (dashboard),
+                                Profile, FamiliaresList/Form, MascotasList/Form,
+                                QrView (titular), QrScanner, QrDetail (público),
+                                Escaneos, Diagnostic
 ```
-
-### Pantallas
-- `splash_screen` — decide entre login/home según sesión guardada
-- `login_screen` — autenticación
-- `register_screen` — alta in-app del titular
-- `home_screen` — mapa OSM + SOS + acceso al lector QR
-- `sos_screen` — confirma y envía la alerta SOS
-- `profile_screen` — datos del titular
-- `qr_scanner_screen` — cámara + lector de QR
-- `qr_detail_screen` — perfil público asociado al QR escaneado
 
 ## Distribución del APK
 
-El APK se publica automáticamente en **GitHub Releases** al hacer push de un
-tag versionado:
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.X.0
+git push origin v1.X.0
 ```
-URL pública para que tus usuarios descarguen:
+URL "latest":
 ```
-https://github.com/<tu-usuario>/quick-rescue/releases/latest/download/quick-rescue.apk
+https://github.com/<usuario>/quickrescue/releases/latest/download/quick-rescue.apk
 ```

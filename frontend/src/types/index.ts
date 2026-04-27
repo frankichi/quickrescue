@@ -62,6 +62,42 @@ export interface Ubicacion {
   timestamp: string;
 }
 
+export type TipoQR = 'usuario' | 'familiar' | 'mascota';
+
+export interface ContactoTitular {
+  nombre_titular: string;
+  telefono: string | null;
+  relacion: string | null;
+  familiares: Array<{ nombre: string; telefono: string; relacion: string }>;
+}
+
+export interface PerfilPublico {
+  tipo: TipoQR;
+  id: number;
+  titular_id: number;
+  nombre: string;
+  subtitulo: string;
+  foto: string | null;
+  grupo_sanguineo?: string | null;
+  alergias?: string | null;
+  enfermedades?: string | null;
+  medicamentos?: string | null;
+  microchip?: string | null;
+  perdida?: boolean;
+  mensaje_perdida?: string | null;
+  contacto: ContactoTitular;
+}
+
+export interface Escaneo {
+  id: number;
+  tipo: TipoQR;
+  referencia_id: number;
+  nombre_referencia: string;
+  latitud: number | null;
+  longitud: number | null;
+  creado_en: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;

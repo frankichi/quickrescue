@@ -40,13 +40,14 @@ jobs:
         working-directory: mobile
         run: flutter pub get
 
-      - name: Build APK release con API_BASE_URL inyectada
-        # --dart-define inyecta la URL en compile-time vía
-        # String.fromEnvironment('API_BASE_URL', ...) en lib/config/app_config.dart
+      - name: Build APK release con URLs inyectadas
+        # --dart-define inyecta valores en compile-time vía
+        # String.fromEnvironment(...) en lib/config/app_config.dart
         working-directory: mobile
         run: |
           flutter build apk --release \
-            --dart-define=API_BASE_URL="${{ secrets.API_BASE_URL }}"
+            --dart-define=API_BASE_URL="${{ secrets.API_BASE_URL }}" \
+            --dart-define=PUBLIC_WEB_BASE="${{ secrets.PUBLIC_WEB_BASE }}"
 
       - name: Renombrar APK
         working-directory: mobile/build/app/outputs/flutter-apk

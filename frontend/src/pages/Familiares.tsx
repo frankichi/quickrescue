@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import * as svc from '../services/familiar.service';
 import { Familiar } from '../types';
 import { errorMessage } from '../services/api';
+import QRModal from '../components/QRModal';
 
 const VACIO = { nombre: '', telefono: '', email: '', relacion: '' };
 
@@ -12,6 +13,7 @@ export default function Familiares() {
   const [cargando, setCargando] = useState(true);
   const [err, setErr] = useState('');
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [qrAbierto, setQrAbierto] = useState<Familiar | null>(null);
 
   const cargar = () => {
     setCargando(true);
@@ -118,6 +120,7 @@ export default function Familiares() {
                 <td>{f.nombre}</td><td>{f.relacion}</td>
                 <td>{f.telefono}</td><td>{f.email || '—'}</td>
                 <td className="row-actions">
+                  <button onClick={() => setQrAbierto(f)}>Ver QR</button>
                   <button onClick={() => editar(f)}>Editar</button>
                   <button onClick={() => eliminar(f.id)}>Eliminar</button>
                 </td>
@@ -125,6 +128,15 @@ export default function Familiares() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {qrAbierto && (
+        <QRModal
+          tipo="familiar"
+          id={qrAbierto.id}
+          nombre={qrAbierto.nombre}
+          onClose={() => setQrAbierto(null)}
+        />
       )}
     </div>
   );

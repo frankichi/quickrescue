@@ -60,4 +60,10 @@ class ApiService {
         .timeout(AppConfig.httpTimeout);
     return _parse(r);
   }
+
+  static Future<dynamic> delete(String path) async {
+    final r = await http.delete(_uri(path), headers: await _headers())
+        .timeout(AppConfig.httpTimeout);
+    return _parse(r);
+  }
 }

@@ -1,11 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:geolocator/geolocator.dart';
 import '../services/auth_service.dart';
-import '../services/location_service.dart';
+import '../services/familiar_service.dart';
+import '../services/mascota_service.dart';
+import '../services/escaneo_service.dart';
 import '../models/usuario.dart';
+import '../models/escaneo.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,67 +12,43 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const Duration _intervaloReporte = Duration(minutes: 5);
-
-  final MapController _mapController = MapController();
-  LatLng? _miPosicion;
   Usuario? _usuario;
-  String? _error;
-  bool _reportando = false;
-  Timer? _timerReporte;
+  int? _countFamiliares;
+  int? _countMascotas;
+  List<Escaneo> _escaneosRecientes = const [];
+  bool _cargando = true;
 
   @override
   void initState() {
     super.initState();
-    _cargarUsuario();
-    _obtenerYReportar();
-    _arrancarReportePeriodico();
+    _cargar();
   }
 
-  @override
-  void dispose() {
-    _timerReporte?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _cargarUsuario() async {
-    final u = await AuthService.getUsuario();
-    if (mounted) setState(() => _usuario = u);
-  }
-
-  Future<void> _obtenerYReportar() async {
-    setState(() { _reportando = true; _error = null; });
+  Future<void> _cargar() async {
+    setState(() => _cargando = true);
     try {
-      final pos = await LocationService.obtenerPosicionActual();
-      LocationService.reportarAlBackend(pos).catchError((_) {});
+      final u = await AuthService.getUsuario();
+      // Carga en paralelo
+      final results = await Future.wait([
+        FamiliarService.listar(),
+        MascotaService.listar(),
+        EscaneoService.listar(limit: 3),
+      ]);
       if (!mounted) return;
-      final nueva = LatLng(pos.latitude, pos.longitude);
-      setState(() => _miPosicion = nueva);
-      _mapController.move(nueva, 16);
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      setState(() {
+        _usuario = u;
+        _countFamiliares = (results[0] as List).length;
+        _countMascotas   = (results[1] as List).length;
+        _escaneosRecientes = results[2] as List<Escaneo>;
+      });
+    } catch (_) {
+      // Si algo falla, dejamos los counts en null y la card lo muestra como "—"
     } finally {
-      if (mounted) setState(() => _reportando = false);
+      if (mounted) setState(() => _cargando = false);
     }
   }
 
-  /// Cada 5 min: obtiene la posición silenciosamente y la reporta.
-  /// No actualiza la UI ni muestra errores (es background passivo en foreground).
-  void _arrancarReportePeriodico() {
-    _timerReporte = Timer.periodic(_intervaloReporte, (_) async {
-      try {
-        final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
-        await LocationService.reportarAlBackend(pos);
-      } catch (_) {
-        // Silencioso: si falla un tick, lo intentará en el siguiente.
-      }
-    });
-  }
-
   Future<void> _logout() async {
-    _timerReporte?.cancel();
     await AuthService.logout();
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/login');
@@ -81,107 +56,160 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final saludo = _usuario != null ? 'Hola, ${_usuario!.nombre}' : 'Quick Rescue';
     return Scaffold(
       appBar: AppBar(
-        title: Text(_usuario != null
-          ? 'Hola, ${_usuario!.nombre}'
-          : 'Quick Rescue'),
+        title: Text(saludo),
         backgroundColor: const Color(0xFFD62828),
         foregroundColor: Colors.white,
         actions: [
-          IconButton(icon: const Icon(Icons.person_outline),
-            onPressed: () => Navigator.pushNamed(context, '/profile')),
-          IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: 'Escanear QR',
+            onPressed: () => Navigator.pushNamed(context, '/qr-scanner'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
+            onPressed: _logout,
+          ),
         ],
       ),
-      body: Stack(
+      body: RefreshIndicator(
+        onRefresh: _cargar,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _CardPerfil(usuario: _usuario),
+            const SizedBox(height: 12),
+            _CardContador(
+              icono: Icons.family_restroom,
+              titulo: 'Mis familiares',
+              count: _countFamiliares,
+              onVer: () => Navigator.pushNamed(context, '/familiares').then((_) => _cargar()),
+            ),
+            const SizedBox(height: 12),
+            _CardContador(
+              icono: Icons.pets,
+              titulo: 'Mis mascotas',
+              count: _countMascotas,
+              onVer: () => Navigator.pushNamed(context, '/mascotas').then((_) => _cargar()),
+            ),
+            const SizedBox(height: 12),
+            _CardEscaneos(
+              cargando: _cargando,
+              escaneos: _escaneosRecientes,
+              onVerTodos: () => Navigator.pushNamed(context, '/escaneos'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardPerfil extends StatelessWidget {
+  final Usuario? usuario;
+  const _CardPerfil({required this.usuario});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: CircleAvatar(
+          radius: 28,
+          backgroundColor: Colors.grey.shade200,
+          backgroundImage: usuario?.foto != null && usuario!.foto!.isNotEmpty
+              ? NetworkImage(usuario!.foto!) : null,
+          child: usuario?.foto == null || usuario!.foto!.isEmpty
+              ? const Icon(Icons.person, color: Colors.grey, size: 28)
+              : null,
+        ),
+        title: Text(
+          usuario != null ? '${usuario!.nombre} ${usuario!.apellido}' : '...',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(usuario?.email ?? ''),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.pushNamed(context, '/profile'),
+      ),
+    );
+  }
+}
+
+class _CardContador extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final int? count;
+  final VoidCallback onVer;
+  const _CardContador({
+    required this.icono, required this.titulo,
+    required this.count, required this.onVer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: Icon(icono, color: const Color(0xFFD62828), size: 32),
+        title: Text(titulo, style: const TextStyle(fontSize: 16)),
+        subtitle: Text(
+          count == null ? '—' : '$count registrado${count == 1 ? '' : 's'}',
+        ),
+        trailing: TextButton(onPressed: onVer, child: const Text('Ver')),
+        onTap: onVer,
+      ),
+    );
+  }
+}
+
+class _CardEscaneos extends StatelessWidget {
+  final bool cargando;
+  final List<Escaneo> escaneos;
+  final VoidCallback onVerTodos;
+  const _CardEscaneos({
+    required this.cargando, required this.escaneos, required this.onVerTodos,
+  });
+
+  String _hace(DateTime d) {
+    final delta = DateTime.now().difference(d);
+    if (delta.inMinutes < 60) return 'hace ${delta.inMinutes} min';
+    if (delta.inHours   < 24) return 'hace ${delta.inHours} h';
+    return 'hace ${delta.inDays} días';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(
         children: [
-          if (_miPosicion == null)
-            const Center(child: CircularProgressIndicator())
+          ListTile(
+            leading: const Icon(Icons.podcasts, color: Color(0xFFD62828), size: 32),
+            title: const Text('Últimos escaneos',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+            trailing: TextButton(onPressed: onVerTodos, child: const Text('Ver todos')),
+          ),
+          if (cargando)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: SizedBox(width: 20, height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else if (escaneos.isEmpty)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text('Aún no hay escaneos.',
+                          style: TextStyle(color: Colors.grey)),
+            )
           else
-            FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: _miPosicion!,
-                initialZoom: 16,
-                minZoom: 3,
-                maxZoom: 19,
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.quickrescue.app',
-                  // OSM exige attribution; lo agregamos abajo.
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _miPosicion!,
-                      width: 48, height: 48,
-                      child: const Icon(Icons.location_on,
-                                        size: 48, color: Color(0xFFD62828)),
-                    ),
-                  ],
-                ),
-                const RichAttributionWidget(
-                  attributions: [
-                    TextSourceAttribution('OpenStreetMap contributors'),
-                  ],
-                ),
-              ],
-            ),
-
-          if (_error != null)
-            Positioned(
-              top: 16, left: 16, right: 16,
-              child: Material(
-                color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(children: [
-                    const Icon(Icons.warning, color: Color(0xFFD62828)),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(_error!)),
-                    TextButton(onPressed: _obtenerYReportar, child: const Text('Reintentar')),
-                  ]),
-                ),
-              ),
-            ),
-
-          // Botón QR en esquina superior derecha
-          Positioned(
-            top: 16, right: 16,
-            child: FloatingActionButton(
-              heroTag: 'qr',
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFFD62828),
-              tooltip: 'Escanear QR',
-              onPressed: () => Navigator.pushNamed(context, '/qr-scanner'),
-              child: const Icon(Icons.qr_code_scanner, size: 28),
-            ),
-          ),
-
-          // SOS abajo
-          Positioned(
-            bottom: 24, left: 16, right: 16,
-            child: ElevatedButton.icon(
-              icon: _reportando
-                ? const SizedBox(width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.warning_amber_rounded, size: 28),
-              label: const Text('  ACTIVAR SOS  ',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD62828),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-              ),
-              onPressed: _reportando
-                ? null
-                : () => Navigator.pushNamed(context, '/sos'),
-            ),
-          ),
+            ...escaneos.map((e) => ListTile(
+              dense: true,
+              title: Text(e.nombreReferencia),
+              subtitle: Text('${e.tipo} • ${_hace(e.creadoEn)}'),
+              trailing: e.latitud != null
+                  ? const Icon(Icons.location_on, color: Colors.green)
+                  : const Icon(Icons.location_off, color: Colors.grey),
+            )),
         ],
       ),
     );

@@ -5,136 +5,105 @@
 
 ## ¿Qué es Quick Rescue?
 
-Sistema de identificación y rescate por geolocalización para personas en
-situación de vulnerabilidad. Tres componentes:
+Sistema de identificación por **QR físico** para personas vulnerables y
+mascotas. Tres componentes:
 
-1. **App móvil (Flutter)** — la lleva el usuario titular. Permite pulsar SOS,
-   ver el mapa y reportar ubicación.
-2. **Panel web (React)** — donde el usuario configura su perfil, agrega
-   familiares y revisa el histórico de ubicaciones.
-3. **API REST (Node + Express + TS)** — backend único que sirve a ambas.
+1. **App móvil del titular (Flutter)** — el cuidador la usa para gestionar
+   familiares, mascotas y QRs. Dashboard con conteos y últimos escaneos.
+2. **Panel web del titular (React)** — mismas funciones, además de
+   imprimir/descargar los QR generados.
+3. **Página pública del QR (React, parte del frontend)** — la abre el
+   transeúnte que escanea el QR físico desde su cámara nativa.
+4. **API REST (Node + Express + TS)** — backend único.
 
-## Estado actual del scaffolding (✅ COMPLETO Y FUNCIONAL)
+> ⚠️ **Pivote v1.1.0** (2026-04-26): el SOS desapareció. La nueva propuesta
+> de valor es el QR físico que cualquiera puede escanear sin instalar nada.
+
+## Estado actual (✅ funcional, post-pivote v1.1.0)
 
 ### Documentación
 - [x] `README.md`, `AGENTS.md`, `ROADMAP.md` raíz
-- [x] `docs/system-overview.md`
-- [x] `docs/api-spec.yaml` (OpenAPI 3.0 con todos los endpoints)
-- [x] `docs/database-schema.sql` + `database/schema.{mysql,postgres}.sql`
-- [x] `docs/features.md`, `docs/flows.md`, `docs/roadmap.md`
-- [x] `docs/deployment.md` (guía de despliegue gratuito en Render+Vercel+GitHub)
+- [x] `docs/system-overview.md` (actualizado con concepto QR)
+- [x] `docs/api-spec.yaml` (incluye `/qr/...` y `/escaneos`)
+- [x] `database/schema.{mysql,postgres}.sql` + `database/migration_002_escaneos.sql`
+- [x] `docs/features.md`, `docs/flows.md`, `docs/roadmap.md` (pendientes de actualizar al pivote)
+- [x] `docs/deployment.md`
 - [x] `docs/ai-context.md` (este archivo)
 
 ### Base de datos
-- [x] Esquema MySQL y PostgreSQL listos para correr
-- [x] `seed.sql` con datos demo en ambos dialects
-- [x] 4 tablas: `usuarios`, `familiares`, `historial_medico`, `ubicaciones`
+- [x] **6 tablas**: `usuarios`, `familiares`, `mascotas`, `historial_medico`,
+      `ubicaciones`, `escaneos_qr`
 - [x] FKs con `ON DELETE CASCADE`
+- [x] Migración 002 disponible en `database/migration_002_escaneos.sql`
 
-### Backend (Node + Express + TS + Sequelize)
-- [x] `package.json` con TODAS las dependencias correctas
-- [x] `tsconfig.json`
-- [x] `.env.example` documentado
-- [x] `src/main.ts` y `src/app.ts`
-- [x] `src/config/{env,database,mailer}.ts`
-  - **Auto-detección MySQL vs PostgreSQL desde `DATABASE_URL`**
-  - **Resend integrado** para emails (no SMTP)
-- [x] `src/utils/{logger,jwt,password,AppError}.ts`
-- [x] `src/middleware/{auth,error,validation}.middleware.ts`
-- [x] `src/models/` — 4 modelos Sequelize + `index.ts` con asociaciones
-- [x] `src/services/` — auth, usuario, familiar, historial, ubicacion, sos
-- [x] `src/controllers/` — 6 controllers
-- [x] `src/routes/` — 6 routers + index
-- [x] `src/validators/` — express-validator chains
+### Backend
+- [x] Modelos: Usuario, Familiar, Mascota, HistorialMedico, Ubicacion, Escaneo
+- [x] Services: auth, usuario, familiar, mascota, historial, ubicacion, **qr**, **escaneos**
+- [x] Routes: `/qr/...` (público), `/escaneos` (autenticado), todo lo demás privado
+- [x] Email automático al titular cuando alguien escanea
+- [ ] ~~SOS~~ ELIMINADO en v1.1.0
 
-### Frontend (React 18 + Vite + TS)
-- [x] `package.json` + `tsconfig.json` + `vite.config.ts`
-- [x] `index.html` + `public/favicon.svg`
-- [x] `src/main.tsx` + `src/App.tsx` con React Router
-- [x] `src/types/index.ts` — interfaces compartidas con la API
-- [x] `src/services/` — api.ts (axios + interceptor JWT) + 5 services por recurso
-- [x] `src/context/AuthContext.tsx` + hook `useAuth`
-- [x] `src/components/{ProtectedRoute,Layout}.tsx`
-- [x] **7 páginas funcionales**: Login, Register, Dashboard, Profile,
-      Familiares (CRUD completo), HistorialMedico, Ubicaciones
-- [x] `src/styles/global.css` (sin framework CSS, ~300 líneas)
-- [x] `vercel.json` para despliegue
+### Frontend
+- [x] Página **pública** `/qr/:tipo/:id` (PublicQR.tsx) sin sidebar, mobile-first
+- [x] Componente `QRModal` que renderiza/imprime/descarga QR (`qrcode` npm)
+- [x] Botón "Ver QR" en filas de Familiares.tsx y Mascotas.tsx
+- [x] Página `Escaneos.tsx` con histórico
+- [x] Sidebar actualizado con link "📡 Historial de escaneos"
 
-### Mobile (Flutter)
-- [x] `pubspec.yaml` con dependencias (http, geolocator, google_maps_flutter,
-      shared_preferences, url_launcher)
-- [x] `lib/main.dart` con MaterialApp y rutas nombradas
-- [x] `lib/config/app_config.dart` (URL inyectable desde CI)
-- [x] `lib/models/{usuario,familiar}.dart`
-- [x] `lib/services/{api_service,auth_service,location_service}.dart`
-- [x] **5 pantallas**: Splash, Login, Home (con Google Map), SOS, Profile
-- [x] `android/app/src/main/AndroidManifest.xml` con permisos y Maps key
-
-### Infraestructura
-- [x] `render.yaml` — Infrastructure-as-Code (un click para Render)
-- [x] `frontend/vercel.json` — config Vercel
-- [x] `.github/workflows/build-apk.yml` — compila APK en cada git tag
-      y lo publica en GitHub Releases
-- [x] `.gitignore` general
-
-## 🚧 Tareas pendientes (TODO para Antigravity)
-
-Marcadas en orden de prioridad. **El scaffolding actual es funcional**;
-estas son mejoras y features adicionales.
-
-### Alta prioridad
-1. **Subida de fotos**: el campo `usuario.foto` y `mascota.foto` aceptan URL.
-   Añadir endpoint `POST /api/v1/usuarios/me/foto` con `multer`. Guardar en
-   Cloudflare R2 / Supabase Storage (free tier).
-2. **Refresh tokens**: hoy solo `access_token` (15 min). Añadir tabla
-   `sesiones`, endpoint `POST /auth/refresh`, rotación.
-3. **Background location en mobile**: hoy solo se reporta cuando la app
-   está abierta. Usar `flutter_background_service` o `workmanager`.
-4. **Tests**: Jest + Supertest en backend. Cobertura mínima en `auth` y `sos`.
-5. **Mapa con histórico en frontend**: la página `Ubicaciones.tsx` muestra
-   solo tabla. Añadir mapa con Leaflet (gratis, sin API key) o Google Maps.
-
-### Media prioridad
-6. **Notificaciones push (FCM)** para que el familiar reciba aviso
-   instantáneo además del email.
-7. **Pantalla de registro en mobile**. Hoy solo permite login (tiene un
-   TODO comentado en `login_screen.dart`).
-8. **Rate limiting** con `express-rate-limit` en `/auth/*` y `/sos`.
-9. **Validación de formularios en frontend** con `react-hook-form` + `zod`.
-
-### Baja prioridad
-10. **Generación de QR físico** del usuario (con su `id` o un token público
-    nuevo) para identificación en pulsera/llavero.
-11. **Vista pública (sin login)** que se abre al escanear el QR.
-12. **Modo offline en mobile** con cola de ubicaciones a sincronizar.
-13. **i18n** backend + frontend + mobile.
-14. **Panel admin** con métricas.
+### Mobile
+- [x] Dashboard (home_screen): cards Perfil, Familiares, Mascotas, Últimos escaneos
+- [x] CRUD completo de Familiares y Mascotas (list + form)
+- [x] Pantalla `qr_view_screen` con QR renderizado (`qr_flutter`) + share (`share_plus`)
+- [x] Pantalla `escaneos_screen` con historial + link a Maps externo
+- [x] Inyección por `--dart-define`: `API_BASE_URL` y `PUBLIC_WEB_BASE`
+- [ ] ~~SOS screen~~ ELIMINADA
+- [ ] ~~Reporte automático de ubicación cada 5 min~~ ELIMINADO
 
 ## Decisiones tomadas (no cambiar sin discusión)
 
-- **Sequelize** y no Prisma: el agente puede editar modelos sin re-generar.
-- **Auto-detección de dialect** en `database.ts`: el código funciona con
-  MySQL local Y PostgreSQL en Render sin tocar nada. Solo cambia
-  `DATABASE_URL`.
-- **Resend** y no SMTP: API más simple, free tier 100/día sin tarjeta.
-- **JWT con access corto + plan de refresh**: balance seguridad/UX.
-- **Flutter** y no React Native: una sola tecnología (Dart) más fácil de
-  mantener para un equipo pequeño y mejor performance gráfica para mapas.
-- **Stack 100% gratis** documentado en `docs/deployment.md`:
-  Render + Vercel + GitHub Actions + Resend.
-- **Nombres en español** en modelos, servicios y UI: el dominio del
-  problema es local (Perú).
+- **Pivote v1.1.0 (2026-04-26)** — eliminado SOS, dashboard del titular,
+  QR físico como mecanismo principal. Ver `docs/system-overview.md`.
+- **Sequelize** y no Prisma.
+- **Auto-detección MySQL/PostgreSQL** en `database.ts`.
+- **Resend** para emails (no SMTP).
+- **JWT** access corto + plan refresh.
+- **Flutter** y no React Native.
+- **OpenStreetMap** (`flutter_map` + Leaflet) — sin API key ni billing.
+- **Stack 100% gratis**: Render + Vercel + GitHub Actions + Resend.
+- **Nombres en español** en modelos, servicios, UI.
+- **`String.fromEnvironment` + `--dart-define`** para inyectar URLs en
+  el APK (NO sed sobre el .dart).
+
+## 🚧 Pendientes próximos
+
+### Alta prioridad
+1. **Rediseño visual completo** del frontend (v1.2.0) — alineado al
+   nuevo concepto QR.
+2. **Subida de fotos** (Cloudflare R2 / Supabase Storage) — hoy se
+   guarda solo URL.
+3. **Refresh tokens** — hoy solo access (15 min).
+4. **Tests** Jest + Supertest, especialmente en `qr.service` y `escaneos`.
+5. **Página `/historial` mobile** (link removido temporalmente del dashboard).
+
+### Media prioridad
+6. **Push FCM** además de email.
+7. **Rate limit** en `/qr/...` para prevenir abuso de notificaciones.
+8. **Validación de formularios frontend** con `react-hook-form` + `zod`.
+9. **Vista pública mascota perdida** con highlight especial.
+
+### Baja prioridad
+10. **i18n**.
+11. **Modo offline mobile** con cola de cambios.
+12. **Panel admin** con métricas globales de escaneos.
 
 ## Cómo continuar
 
-1. **Lee `AGENTS.md`** para conocer las convenciones obligatorias.
-2. **Lee `docs/api-spec.yaml`** para entender el contrato.
-3. **Lee `docs/deployment.md`** si vas a tocar configuración de despliegue.
-4. Elige una tarea de "Pendientes" (empieza por las de alta prioridad).
-5. Antes de codear, **actualiza `docs/api-spec.yaml`** si vas a cambiar
-   el contrato HTTP.
-6. Después de codear, **actualiza esta sección "Estado actual"** marcando
-   lo que completaste con [x].
+1. Lee `AGENTS.md` para convenciones.
+2. Lee `docs/system-overview.md` para entender el concepto QR.
+3. Lee `docs/api-spec.yaml` para el contrato HTTP.
+4. Toca una tarea de "Pendientes próximos" (alta primero).
+5. Si cambias el contrato HTTP, **actualiza `docs/api-spec.yaml` en el mismo PR**.
+6. Después de codear, **actualiza esta sección "Estado actual"**.
 
 ## Convenciones del agente
 

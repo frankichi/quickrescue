@@ -7,6 +7,7 @@
 -- Si quisieras crearla manualmente:
 --   CREATE DATABASE quickrescue WITH ENCODING 'UTF8';
 
+DROP TABLE IF EXISTS escaneos_qr CASCADE;
 DROP TABLE IF EXISTS ubicaciones CASCADE;
 DROP TABLE IF EXISTS historial_medico CASCADE;
 DROP TABLE IF EXISTS mascotas CASCADE;
@@ -119,3 +120,22 @@ CREATE TABLE ubicaciones (
     "timestamp"  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX ix_ubicaciones_usuario_ts ON ubicaciones(usuario_id, "timestamp" DESC);
+
+-- --------------------------------------------------------
+--  ESCANEOS QR
+--  Cada vez que un transeúnte escanea un QR físico se inserta
+--  un registro y se notifica por email al titular.
+-- --------------------------------------------------------
+CREATE TABLE escaneos_qr (
+    id              BIGSERIAL PRIMARY KEY,
+    tipo            VARCHAR(20)     NOT NULL CHECK (tipo IN ('usuario','familiar','mascota')),
+    referencia_id   INTEGER         NOT NULL,
+    titular_id      INTEGER         NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    latitud         NUMERIC(10,7),
+    longitud        NUMERIC(10,7),
+    ip              VARCHAR(45),
+    user_agent      VARCHAR(500),
+    creado_en       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_escaneos_titular_fecha ON escaneos_qr(titular_id, creado_en DESC);
+CREATE INDEX ix_escaneos_ref           ON escaneos_qr(tipo, referencia_id);

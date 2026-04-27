@@ -91,12 +91,6 @@ export const validarUbicacion = [
   body('precision_m').optional().isInt({ min: 0, max: 10000 }),
 ];
 
-export const validarSOS = [
-  body('latitud')  .isFloat({ min: -90,  max: 90 }),
-  body('longitud') .isFloat({ min: -180, max: 180 }),
-  body('mensaje')  .optional().isString().isLength({ max: 500 }),
-];
-
 export const validarIdParam = [
   param('id').isInt({ min: 1 }).withMessage('ID inválido'),
 ];

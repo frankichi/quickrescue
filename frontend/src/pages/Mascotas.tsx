@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import * as svc from '../services/mascota.service';
 import { Mascota, EspecieMascota } from '../types';
 import { errorMessage } from '../services/api';
+import QRModal from '../components/QRModal';
 
 interface FormState {
   nombre: string;
@@ -28,6 +29,7 @@ export default function Mascotas() {
   const [cargando, setCargando] = useState(true);
   const [err, setErr] = useState('');
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [qrAbierto, setQrAbierto] = useState<Mascota | null>(null);
 
   const cargar = () => {
     setCargando(true);
@@ -209,6 +211,7 @@ export default function Mascotas() {
                     : <span style={{ color: '#16a34a' }}>En casa</span>}
                 </td>
                 <td className="row-actions">
+                  <button onClick={() => setQrAbierto(m)}>Ver QR</button>
                   <button onClick={() => editar(m)}>Editar</button>
                   <button onClick={() => eliminar(m.id)}>Eliminar</button>
                 </td>
@@ -216,6 +219,15 @@ export default function Mascotas() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {qrAbierto && (
+        <QRModal
+          tipo="mascota"
+          id={qrAbierto.id}
+          nombre={qrAbierto.nombre}
+          onClose={() => setQrAbierto(null)}
+        />
       )}
     </div>
   );

@@ -1,12 +1,14 @@
 import 'package:geolocator/geolocator.dart';
 import 'api_service.dart';
 
-/// Manejo de GPS y reporte de ubicación al backend.
+/// Manejo de GPS. El reporte continuo del titular se eliminó: con el pivote
+/// al concepto QR, la ubicación importante es la del transeúnte que escanea
+/// (capturada por el navegador en la página pública del QR).
 class LocationService {
   /// Pide permisos y obtiene posición actual con alta precisión.
   /// Lanza Exception si el usuario niega o el GPS está apagado.
   static Future<Position> obtenerPosicionActual() async {
-    bool gpsActivo = await Geolocator.isLocationServiceEnabled();
+    final gpsActivo = await Geolocator.isLocationServiceEnabled();
     if (!gpsActivo) {
       throw Exception('El GPS está desactivado. Actívalo en la configuración del sistema.');
     }
@@ -25,22 +27,12 @@ class LocationService {
     );
   }
 
-  /// Reporta la ubicación actual al backend (sin SOS).
+  /// Reporta una ubicación puntual al backend (uso opcional, no automático).
   static Future<void> reportarAlBackend(Position pos) async {
     await ApiService.post('/ubicaciones', {
       'latitud':  pos.latitude,
       'longitud': pos.longitude,
       'precision_m': pos.accuracy.round(),
     });
-  }
-
-  /// Dispara SOS: envía POST /sos con la ubicación y dispara emails.
-  static Future<Map<String, dynamic>> dispararSOS(Position pos, {String? mensaje}) async {
-    final data = await ApiService.post('/sos', {
-      'latitud':  pos.latitude,
-      'longitud': pos.longitude,
-      if (mensaje != null && mensaje.isNotEmpty) 'mensaje': mensaje,
-    }) as Map<String, dynamic>;
-    return data;
   }
 }

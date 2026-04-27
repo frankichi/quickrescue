@@ -3,6 +3,7 @@ import { Familiar } from './familiar.model';
 import { HistorialMedico } from './historialMedico.model';
 import { Ubicacion } from './ubicacion.model';
 import { Mascota } from './mascota.model';
+import { Escaneo } from './escaneo.model';
 
 /**
  * Registro de asociaciones entre modelos.
@@ -40,6 +41,14 @@ export const registrarAsociaciones = (): void => {
     onDelete: 'CASCADE',
   });
   Mascota.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
+
+  // Usuario 1 → N Escaneos QR (los recibidos como titular)
+  Usuario.hasMany(Escaneo, {
+    foreignKey: 'titular_id',
+    as: 'escaneos',
+    onDelete: 'CASCADE',
+  });
+  Escaneo.belongsTo(Usuario, { foreignKey: 'titular_id', as: 'titular' });
 };
 
-export { Usuario, Familiar, HistorialMedico, Ubicacion, Mascota };
+export { Usuario, Familiar, HistorialMedico, Ubicacion, Mascota, Escaneo };

@@ -26,6 +26,7 @@ export default function Layout() {
           <NavLink to="/mascotas"        className={linkClass}>🐾 Mascotas</NavLink>
           <NavLink to="/historial"       className={linkClass}>🩺 Historial médico</NavLink>
           <NavLink to="/ubicaciones"     className={linkClass}>📍 Ubicaciones</NavLink>
+          <NavLink to="/escaneos"        className={linkClass}>📡 Historial de escaneos</NavLink>
         </nav>
         <div className="user-box">
           <div className="user-name">{usuario?.nombre} {usuario?.apellido}</div>

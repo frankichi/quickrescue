@@ -11,6 +11,7 @@ CREATE DATABASE IF NOT EXISTS quickrescue
 USE quickrescue;
 
 -- Drop en orden inverso por las FKs
+DROP TABLE IF EXISTS escaneos_qr;
 DROP TABLE IF EXISTS ubicaciones;
 DROP TABLE IF EXISTS historial_medico;
 DROP TABLE IF EXISTS mascotas;
@@ -129,5 +130,28 @@ CREATE TABLE ubicaciones (
     KEY ix_ubicaciones_usuario_ts (usuario_id, `timestamp`),
     CONSTRAINT fk_ubicaciones_usuario
         FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+--  ESCANEOS QR
+--  Cada vez que un transeúnte escanea un QR físico se inserta
+--  un registro y se notifica por email al titular.
+-- --------------------------------------------------------
+CREATE TABLE escaneos_qr (
+    id              BIGINT UNSIGNED   NOT NULL AUTO_INCREMENT,
+    tipo            ENUM('usuario','familiar','mascota') NOT NULL,
+    referencia_id   INT UNSIGNED      NOT NULL,
+    titular_id      INT UNSIGNED      NOT NULL,
+    latitud         DECIMAL(10,7)     DEFAULT NULL,
+    longitud        DECIMAL(10,7)     DEFAULT NULL,
+    ip              VARCHAR(45)       DEFAULT NULL,
+    user_agent      VARCHAR(500)      DEFAULT NULL,
+    creado_en       DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY ix_escaneos_titular_fecha (titular_id, creado_en),
+    KEY ix_escaneos_ref (tipo, referencia_id),
+    CONSTRAINT fk_escaneos_titular
+        FOREIGN KEY (titular_id) REFERENCES usuarios (id)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

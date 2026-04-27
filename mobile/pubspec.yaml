@@ -1,7 +1,7 @@
 name: quick_rescue
-description: App móvil de Quick Rescue. Mapa, GPS y botón SOS.
+description: App móvil de Quick Rescue. Dashboard del titular, gestión de QR.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -11,15 +11,17 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  http: ^1.2.1                       # Cliente HTTP simple
-  shared_preferences: ^2.2.3         # Persistencia local del token
-  geolocator: ^11.0.0                # GPS con permisos
-  flutter_map: ^7.0.0                # Mapa con OpenStreetMap (sin API key)
-  latlong2: ^0.9.1                   # Tipo LatLng usado por flutter_map
-  mobile_scanner: ^5.0.0             # Lector de QR con cámara
-  permission_handler: ^11.3.0        # Permisos runtime (cámara, etc.)
-  intl: ^0.19.0                      # Formateo de fechas
-  url_launcher: ^6.2.6               # Abrir tel:, mailto:, https://
+  http: ^1.2.1
+  shared_preferences: ^2.2.3
+  geolocator: ^11.0.0                # GPS para escaneos manuales del titular
+  flutter_map: ^7.0.0                # Mapa OSM para vistas del histórico
+  latlong2: ^0.9.1
+  mobile_scanner: ^5.0.0             # Lector de QR (opcional)
+  permission_handler: ^11.3.0
+  intl: ^0.19.0
+  url_launcher: ^6.2.6               # tel:, mailto:, https://
+  qr_flutter: ^4.1.0                 # Renderizado de QR para titular
+  share_plus: ^10.0.0                # Compartir QR por WhatsApp/email
 
 dev_dependencies:
   flutter_lints: ^3.0.0

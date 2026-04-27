@@ -27,9 +27,12 @@ tags:
   - name: HistorialMedico
     description: Información médica del usuario
   - name: Ubicaciones
-    description: Histórico de geolocalización
-  - name: SOS
-    description: Botón de emergencia
+    description: Histórico de geolocalización del titular
+  - name: QR
+    description: Endpoints PÚBLICOS (sin auth) consumidos por la página
+                 pública del QR físico
+  - name: Escaneos
+    description: Histórico de escaneos recibidos por el titular
 
 paths:
   /health:
@@ -143,15 +146,22 @@ paths:
       responses:
         '200': { description: OK }
 
-  /usuarios/{id}/publico:
+  # ----------- QR PÚBLICO (sin autenticación) -----------
+  /qr/{tipo}/{id}/publico:
     get:
-      tags: [Usuarios]
-      summary: Perfil público (escaneable por QR, sin autenticación)
+      tags: [QR]
+      summary: Datos públicos asociados a un QR físico
       description: |
-        Devuelve datos mínimos para un rescatista que escanea el QR de la
-        pulsera/llavero del usuario. NO incluye email, dni ni password.
+        Endpoint que consume el frontend público cuando un transeúnte abre
+        la URL del QR desde la cámara nativa de su celular.
+        Devuelve foto, nombre, datos médicos relevantes y datos de contacto
+        del titular. NO incluye email, dni ni password.
       security: []
       parameters:
+        - in: path
+          name: tipo
+          required: true
+          schema: { type: string, enum: [usuario, familiar, mascota] }
         - in: path
           name: id
           required: true
@@ -166,7 +176,72 @@ paths:
                 properties:
                   success: { type: boolean }
                   data:    { $ref: '#/components/schemas/PerfilPublico' }
-        '404': { description: Usuario inactivo o inexistente }
+        '404': { description: QR no válido }
+
+  /qr/{tipo}/{id}/escaneo:
+    post:
+      tags: [QR]
+      summary: Registrar un escaneo del QR físico
+      description: |
+        El transeúnte (o la app móvil del titular) registra que escaneó el
+        QR. Si comparte permiso de geolocalización del navegador se envían
+        las coordenadas; si no, se registra el escaneo sin ubicación.
+        Dispara un email automático al titular notificando el escaneo.
+      security: []
+      parameters:
+        - in: path
+          name: tipo
+          required: true
+          schema: { type: string, enum: [usuario, familiar, mascota] }
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                latitud:  { type: number, format: float, nullable: true }
+                longitud: { type: number, format: float, nullable: true }
+      responses:
+        '201':
+          description: Escaneo registrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      escaneo_id: { type: integer }
+                      notificado: { type: boolean }
+
+  # ----------- ESCANEOS (titular autenticado) -----------
+  /escaneos:
+    get:
+      tags: [Escaneos]
+      summary: Histórico de escaneos del titular
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 100, maximum: 500 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Escaneo' }
 
   # ----------- FAMILIARES -----------
   /familiares:
@@ -339,36 +414,6 @@ paths:
       responses:
         '201': { description: Creado }
 
-  # ----------- SOS -----------
-  /sos:
-    post:
-      tags: [SOS]
-      summary: Disparar alerta SOS (envía email a todos los familiares)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [latitud, longitud]
-              properties:
-                latitud:  { type: number, format: float }
-                longitud: { type: number, format: float }
-                mensaje:  { type: string }
-      responses:
-        '200':
-          description: SOS enviado
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: { type: boolean }
-                  data:
-                    type: object
-                    properties:
-                      familiares_notificados: { type: integer }
-
 components:
   securitySchemes:
     bearerAuth:
@@ -405,22 +450,44 @@ components:
     PerfilPublico:
       type: object
       properties:
+        tipo:            { type: string, enum: [usuario, familiar, mascota] }
         id:              { type: integer }
+        titular_id:      { type: integer }
         nombre:          { type: string }
-        apellido:        { type: string }
+        subtitulo:       { type: string, example: "Hijo" }
         foto:            { type: string, nullable: true }
         grupo_sanguineo: { type: string, nullable: true }
         alergias:        { type: string, nullable: true }
         enfermedades:    { type: string, nullable: true }
         medicamentos:    { type: string, nullable: true }
-        familiares:
-          type: array
-          items:
-            type: object
-            properties:
-              nombre:   { type: string }
-              telefono: { type: string }
-              relacion: { type: string }
+        microchip:       { type: string, nullable: true,  description: "Solo mascotas" }
+        perdida:         { type: boolean, description: "Solo mascotas" }
+        mensaje_perdida: { type: string,  nullable: true, description: "Solo mascotas" }
+        contacto:
+          type: object
+          properties:
+            nombre_titular: { type: string }
+            telefono:       { type: string, nullable: true }
+            relacion:       { type: string, nullable: true }
+            familiares:
+              type: array
+              items:
+                type: object
+                properties:
+                  nombre:   { type: string }
+                  telefono: { type: string }
+                  relacion: { type: string }
+
+    Escaneo:
+      type: object
+      properties:
+        id:                { type: integer }
+        tipo:              { type: string, enum: [usuario, familiar, mascota] }
+        referencia_id:     { type: integer }
+        nombre_referencia: { type: string }
+        latitud:           { type: number, format: float, nullable: true }
+        longitud:          { type: number, format: float, nullable: true }
+        creado_en:         { type: string, format: date-time }
 
     UsuarioUpdate:
       type: object

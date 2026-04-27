@@ -2,110 +2,132 @@
 
 ## Propósito
 
-Quick Rescue es un sistema diseñado para **proteger a personas en situación
-de vulnerabilidad** (adultos mayores, niños, personas con condiciones médicas
-crónicas) mediante:
+Quick Rescue es un sistema para **proteger a personas vulnerables y mascotas
+mediante un código QR físico** (pulsera, llavero, collar) que cualquier
+transeúnte puede escanear con la cámara nativa de su celular para acceder
+a la información necesaria para devolver/rescatar al portador.
 
-1. Un **perfil médico de emergencia** accesible.
-2. **Geolocalización en tiempo real** desde una app móvil.
-3. Un **botón SOS** que envía la ubicación actual a sus familiares por email.
+## Roles
+
+- **Titular (afiliado)**: persona que se registra y gestiona el sistema.
+  Usa la app móvil y/o el panel web. Carga sus familiares vulnerables
+  (adulto mayor, niño, persona con condición médica) y sus mascotas.
+  Solicita los QR físicos para cada uno.
+- **Transeúnte**: persona ajena al sistema que se encuentra a un familiar
+  perdido o una mascota perdida del titular y escanea el QR físico con
+  su cámara. NO usa la app de Quick Rescue, solo el navegador del celular.
 
 ## Casos de uso principales
 
 ### Caso 1: Adulto mayor con Alzheimer
-- Su hija lo registra en Quick Rescue.
-- Llena su perfil con sus datos médicos (alergias, medicamentos, condiciones).
-- Agrega como familiares: a sí misma y al hermano.
-- Le instala la app móvil al padre.
-- Si el padre se desorienta y necesita ayuda, pulsa el botón SOS.
-- Su hija y hermano reciben un email con la ubicación exacta y un link al mapa.
+- La hija registra al padre como "familiar" en su cuenta de Quick Rescue.
+- Llena los datos médicos (alergias, medicamentos, grupo sanguíneo).
+- Solicita un QR físico (pulsera) para él.
+- Si el padre se desorienta y un transeúnte lo escanea, este ve cómo
+  contactar a la hija inmediatamente (botón llamar). La hija recibe
+  un email automático con la ubicación del escaneo.
 
-### Caso 2: Niño en la calle
-- El padre lleva el celular del niño con la app instalada.
-- Si lo pierde, abre el panel web y ve la última ubicación reportada.
-
-### Caso 3: Persona con condición cardíaca
-- Si sufre un evento, pulsa SOS.
-- Los paramédicos que lleguen pueden consultar su perfil médico.
+### Caso 2: Mascota perdida
+- El dueño registra a su perro Killer en Quick Rescue, con foto y
+  microchip. Le pone un collar con el QR.
+- Marca a Killer como "perdido" cuando se escapa.
+- Quien lo encuentre escanea el collar, ve la alerta de mascota perdida
+  con la foto, raza, microchip y un botón para llamar al dueño.
 
 ## Arquitectura técnica
 
 ```
-┌─────────────────┐     ┌─────────────────┐
-│   App Mobile    │     │  Panel Web      │
-│   (Flutter)     │     │  (React + Vite) │
-└────────┬────────┘     └────────┬────────┘
-         │                       │
-         │     HTTPS + JWT       │
-         │                       │
-         └───────────┬───────────┘
-                     │
-                     ▼
-         ┌────────────────────────┐
-         │   API REST             │
-         │   Node + Express + TS  │
-         └───────┬────────────────┘
-                 │
-                 ├─────────► MySQL 8 (datos)
-                 │
-                 └─────────► SMTP (emails SOS)
+┌───────────────────────┐  ┌──────────────────────┐
+│  Titular: App Mobile  │  │ Titular: Panel Web   │
+│       (Flutter)       │  │   (React + Vite)     │
+└───────────┬───────────┘  └──────────┬───────────┘
+            │  HTTPS + JWT            │
+            └──────────┬──────────────┘
+                       │
+                       ▼
+            ┌──────────────────────┐
+            │   API REST           │      ┌──────────────────────┐
+            │   Node + Express     │◄─────┤ Página pública       │
+            │      + TypeScript    │      │  (sin auth, mobile-  │
+            └─────────┬────────────┘      │  first) que abre el  │
+                      │                   │  transeúnte desde la │
+                      ├──► Postgres/MySQL │  cámara nativa       │
+                      │                   └──────────────────────┘
+                      └──► Resend (emails de notificación de escaneos)
 ```
 
 ## Componentes
 
 ### Backend (`/backend`)
 - API REST en `/api/v1/`.
-- Autenticación JWT.
-- ORM Sequelize sobre MySQL.
-- Envío de emails con Nodemailer.
+- Rutas **públicas** bajo `/api/v1/qr/...` (sin token).
+- Rutas privadas con autenticación JWT.
+- Sequelize sobre Postgres (Render) o MySQL (local/Aiven). Auto-detect.
+- Emails con Resend.
 - Ver `docs/api-spec.yaml` para el contrato completo.
 
 ### Frontend (`/frontend`)
 - SPA en React + Vite.
-- Pantallas: Login, Dashboard, Perfil, Familiares, Historial Médico, Ubicaciones.
-- Consume la API por Axios.
-- Token guardado en `localStorage` (TODO: migrar a httpOnly cookie).
+- Pantallas **privadas**: Login, Register, Dashboard, Perfil, Familiares,
+  Mascotas, Historial Médico, Ubicaciones, Historial de escaneos.
+- Pantalla **pública**: `/qr/:tipo/:id` — la que abre el transeúnte al
+  escanear. Mobile-first, sin sidebar, con botones gigantes para llamar.
+- Componente `QRModal` para generar/imprimir/descargar el QR físico
+  desde las páginas Familiares y Mascotas.
+- Cliente Axios. JWT en `localStorage`.
 
 ### Mobile (`/mobile`)
-- App Flutter con 5 pantallas: Splash, Login, Home (mapa), SOS, Profile.
-- Pide permisos de ubicación al iniciar sesión.
-- Usa `geolocator` para GPS y `google_maps_flutter` para el mapa.
-- En SOS: obtiene posición actual + envía POST al backend que dispara los emails.
+- App Flutter del titular.
+- Pantallas: Splash, Login, Register, Home (dashboard), Profile,
+  CRUD Familiares, CRUD Mascotas, QrView (mostrar QR a imprimir/compartir),
+  Historial de escaneos, QrScanner (opcional), Diagnostic.
+- Renderiza QR con `qr_flutter`, comparte con `share_plus`.
+- Mapa OSM (`flutter_map`) para vistas auxiliares.
 
 ### Base de datos (`/database`)
-- 4 tablas: `usuarios`, `familiares`, `historial_medico`, `ubicaciones`.
-- MySQL 8 / MariaDB 10.2+.
-- Charset `utf8mb4` para soportar emojis y acentos.
+- 6 tablas: `usuarios`, `familiares`, `mascotas`, `historial_medico`,
+  `ubicaciones`, `escaneos_qr`.
+- Todas con `ON DELETE CASCADE` desde `usuarios`.
+- Charset `utf8mb4` (MySQL).
 
-## Flujo de datos clave: SOS
+## Flujo clave: escaneo del QR físico
 
 ```
-Usuario pulsa SOS en mobile
+Transeúnte ve un QR Quick Rescue
    │
    ▼
-mobile/screens/sos_screen.dart obtiene GPS
+Cámara nativa del celular abre URL:
+   https://quickrescue.vercel.app/qr/<tipo>/<id>
    │
    ▼
-mobile/services/api_service.dart → POST /api/v1/sos
+Frontend público → GET /api/v1/qr/<tipo>/<id>/publico
+   │   muestra: foto + nombre + datos médicos + botón "Llamar al titular"
+   │
+   ├── (si el transeúnte acepta compartir ubicación)
+   │       POST /api/v1/qr/<tipo>/<id>/escaneo  { latitud, longitud }
+   │
+   └── (si la rechaza)
+           POST /api/v1/qr/<tipo>/<id>/escaneo  { latitud: null, longitud: null }
    │
    ▼
-backend/controllers/sos.controller.ts
-   │
-   ▼
-backend/services/sos.service.ts
-   ├──► Inserta en `ubicaciones`
-   ├──► Carga `familiares` del usuario
-   └──► Llama a mail.service.ts → Envía email a cada familiar
+backend/services/qr.service.ts
+   ├──► INSERT en `escaneos_qr`
+   └──► Email automático al titular con link a Maps (si hubo coords)
 ```
 
 ## Decisiones de diseño
 
-- **El usuario que se loguea ES el sujeto a rescatar.** No hay distinción
-  entre "cuidador" y "protegido". Si en el futuro se necesita esa distinción,
-  añadir un campo `tipo_usuario` o un nuevo modelo `Cuidador`.
-- **Los familiares NO tienen cuenta.** Solo reciben emails. Si en el futuro
-  se quiere darles acceso, crear flujo de invitación.
-- **`historial_medico` es 1-a-1 con `usuarios`** y se crea automáticamente
-  al registrar el usuario.
-- **`ubicaciones` es histórico append-only.** No se editan ni borran reportes
-  individualmente.
+- **El usuario que se loguea es el titular cuidador**, no la persona
+  vulnerable. Los protegidos van como `familiares` (sin cuenta propia).
+- **Las mascotas son entidades de primera clase** con su propio QR.
+- **El QR codifica una URL pública**, no un payload binario. Funciona
+  con cualquier app de cámara/QR genérica.
+- **El transeúnte NO instala nada.** La página pública es web responsive.
+- **Coordenadas opcionales**: el transeúnte puede negar el permiso de
+  geolocalización del navegador y el escaneo igual se registra.
+- **Sin SMS / Twilio** todavía: solo email vía Resend (free tier).
+- **`ubicaciones` se conserva** como tabla histórica para el caso del
+  titular reportando manualmente, pero ya no se reporta automáticamente
+  desde la app móvil cada N minutos.
+- **`SOS` fue eliminado** en el pivote a v1.1.0 — no encajaba con el
+  modelo de QR físico + transeúnte.

@@ -16,8 +16,3 @@ export const eliminarMiCuenta = async (req: Request, res: Response): Promise<voi
   res.json({ success: true, data });
 };
 
-export const obtenerPerfilPublico = async (req: Request, res: Response): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
-  const data = await service.obtenerPerfilPublico(id);
-  res.json({ success: true, data });
-};
