@@ -6,6 +6,7 @@ import { enviarEmail } from '../config/mailer';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 import type { TipoEscaneo } from '../models/escaneo.model';
+import { sendPushToUser } from './onesignal.service';
 
 const TIPOS_VALIDOS: TipoEscaneo[] = ['usuario', 'familiar', 'mascota'];
 export const esTipoValido = (t: string): t is TipoEscaneo =>
@@ -313,12 +314,29 @@ export const registrarEscaneo = async (datos: DatosEscaneo) => {
     }).catch((e) => logger.error('Error enviando email de escaneo', e));
   }
 
-  // TODO Fase 2: push con OneSignal usando titular.onesignal_player_id
-  if (titular?.onesignal_player_id) {
-    logger.info(
-      `[push placeholder] enviar a player_id=${titular.onesignal_player_id} ` +
-      `escaneo=${escaneo.id}`,
-    );
+  // Push (best-effort: no rompe el flow si OneSignal falla o el usuario
+  // no activó notificaciones).
+  if (titular) {
+    const titulo = perfil.tipo === 'usuario'
+      ? '🚨 Alguien escaneó tu QR'
+      : `🚨 Alguien escaneó tu QR de ${perfil.tipo}`;
+    const ubicacionMsg = direccion
+      ? `Ubicación: ${direccion}`
+      : datos.latitud != null && datos.longitud != null
+        ? `Ubicación: ${datos.latitud.toFixed(5)}, ${datos.longitud.toFixed(5)}`
+        : 'El transeúnte no compartió su ubicación.';
+    sendPushToUser(titular.id, {
+      title:   titulo,
+      message: ubicacionMsg,
+      url:     `${env.publicWebBase}/escaneos`,
+      data: {
+        tipo:          datos.tipo,
+        referencia_id: datos.referencia_id,
+        lat:           datos.latitud  ?? null,
+        lng:           datos.longitud ?? null,
+        escaneo_id:    escaneo.id,
+      },
+    }).catch((e) => logger.error('Error enviando push de escaneo', e));
   }
 
   return { escaneo_id: escaneo.id, notificado: !!titular?.email };
