@@ -14,6 +14,9 @@ export interface MascotaInput {
   edad_anios?: number | null;
   perdida?: boolean;
   mensaje_perdida?: string | null;
+  alergias?: string | null;
+  medicamentos?: string | null;
+  condiciones?: string | null;
 }
 
 export const listar = async (): Promise<Mascota[]> => {

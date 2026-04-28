@@ -49,15 +49,6 @@ export interface DatosMedicosPublicos {
   condiciones:     string | null;
 }
 
-const SIN_DATOS_MEDICOS: DatosMedicosPublicos = {
-  grupo_sanguineo: null,
-  alergias:        null,
-  enfermedades:    null,
-  operaciones:     null,
-  medicamentos:    null,
-  condiciones:     null,
-};
-
 interface PerfilPublicoBase {
   id: number;
   titular_id: number;
@@ -188,8 +179,14 @@ export const obtenerPerfilPublico = async (
     edad_anios: m.edad_anios,
     perdida: m.perdida,
     mensaje_perdida: m.mensaje_perdida,
-    // Los campos médicos de mascota se añaden en Commit 3.
-    datos_medicos: { ...SIN_DATOS_MEDICOS },
+    datos_medicos: {
+      grupo_sanguineo: null,
+      alergias:        m.alergias     ?? null,
+      enfermedades:    null,
+      operaciones:     null,
+      medicamentos:    m.medicamentos ?? null,
+      condiciones:     m.condiciones  ?? null,
+    },
     contacto_titular: armarContacto(titular),
   };
 };

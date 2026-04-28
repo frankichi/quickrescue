@@ -43,3 +43,17 @@ ALTER TABLE familiares ADD COLUMN IF NOT EXISTS alergias         TEXT;
 ALTER TABLE familiares ADD COLUMN IF NOT EXISTS enfermedades     TEXT;
 ALTER TABLE familiares ADD COLUMN IF NOT EXISTS operaciones      TEXT;
 ALTER TABLE familiares ADD COLUMN IF NOT EXISTS medicamentos     TEXT;
+
+-- ------------------------------------------------------------
+--  Commit 3 — mascotas: datos médicos opcionales
+--
+--  Para que el QR físico de una mascota muestre alergias o
+--  medicamentos cuando el dueño quiera dejarlos visibles al
+--  rescatista (ej. perro con alergia a ciertos medicamentos).
+--
+--  La columna `microchip` se mantiene tal cual (no se elimina)
+--  pero ya no se expone en la UI desde Fase 1.5.
+-- ------------------------------------------------------------
+ALTER TABLE mascotas ADD COLUMN IF NOT EXISTS alergias     TEXT;
+ALTER TABLE mascotas ADD COLUMN IF NOT EXISTS medicamentos TEXT;
+ALTER TABLE mascotas ADD COLUMN IF NOT EXISTS condiciones  TEXT;

@@ -94,6 +94,9 @@ CREATE TABLE mascotas (
     microchip        VARCHAR(40),
     perdida          BOOLEAN      NOT NULL DEFAULT FALSE,
     mensaje_perdida  TEXT,
+    alergias         TEXT,
+    medicamentos     TEXT,
+    condiciones      TEXT,
     creado_en        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actualizado_en   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

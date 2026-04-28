@@ -94,6 +94,9 @@ CREATE TABLE mascotas (
     microchip        VARCHAR(40)       DEFAULT NULL,
     perdida          TINYINT(1)        NOT NULL DEFAULT 0,
     mensaje_perdida  TEXT              DEFAULT NULL,
+    alergias         TEXT              DEFAULT NULL,
+    medicamentos     TEXT              DEFAULT NULL,
+    condiciones      TEXT              DEFAULT NULL,
     creado_en        DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actualizado_en   DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP
                      ON UPDATE CURRENT_TIMESTAMP,

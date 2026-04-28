@@ -49,6 +49,9 @@ export interface Mascota {
   microchip: string | null;
   perdida: boolean;
   mensaje_perdida: string | null;
+  alergias: string | null;
+  medicamentos: string | null;
+  condiciones: string | null;
   creado_en: string;
   actualizado_en: string;
 }

@@ -13,12 +13,22 @@ interface FormState {
   edad_anios: string;
   perdida: boolean;
   mensaje_perdida: string;
+  alergias: string;
+  medicamentos: string;
+  condiciones: string;
 }
 
 const VACIO: FormState = {
   nombre: '', especie: 'perro', raza: '', color: '',
   edad_anios: '',
   perdida: false, mensaje_perdida: '',
+  alergias: '', medicamentos: '', condiciones: '',
+};
+
+/** String vacío → null, para no mandar "" al backend. */
+const nullifyEmpty = (s: string): string | null => {
+  const t = s.trim();
+  return t.length === 0 ? null : t;
 };
 
 export default function Mascotas() {
@@ -56,14 +66,17 @@ export default function Mascotas() {
   const guardar = async (e: FormEvent) => {
     e.preventDefault();
     setErr('');
-    const payload = {
-      nombre:          form.nombre,
+    const payload: svc.MascotaInput = {
+      nombre:          form.nombre.trim(),
       especie:         form.especie,
-      raza:            form.raza || null,
-      color:           form.color || null,
+      raza:            nullifyEmpty(form.raza),
+      color:           nullifyEmpty(form.color),
       edad_anios:      form.edad_anios === '' ? null : Number(form.edad_anios),
       perdida:         form.perdida,
-      mensaje_perdida: form.mensaje_perdida || null,
+      mensaje_perdida: nullifyEmpty(form.mensaje_perdida),
+      alergias:        nullifyEmpty(form.alergias),
+      medicamentos:    nullifyEmpty(form.medicamentos),
+      condiciones:     nullifyEmpty(form.condiciones),
     };
     try {
       const guardada = editando
@@ -95,6 +108,9 @@ export default function Mascotas() {
       edad_anios: m.edad_anios?.toString() || '',
       perdida: m.perdida,
       mensaje_perdida: m.mensaje_perdida || '',
+      alergias:        m.alergias        || '',
+      medicamentos:    m.medicamentos    || '',
+      condiciones:     m.condiciones     || '',
     });
     setEditando(m.id);
     setMostrarForm(true);
@@ -162,6 +178,15 @@ export default function Mascotas() {
           </div>
           <label>Foto (opcional, máx 5MB)</label>
           <input type="file" accept="image/jpeg,image/png,image/webp" onChange={onFotoChange} />
+
+          <h4 className="form-section-title">Datos médicos (opcionales, los verá el rescatista)</h4>
+          <label>Alergias</label>
+          <textarea rows={2} value={form.alergias} onChange={set('alergias')} placeholder="Ej. Picaduras de pulga, ciertos antibióticos…" />
+          <label>Medicamentos</label>
+          <textarea rows={2} value={form.medicamentos} onChange={set('medicamentos')} placeholder="Ej. Apoquel diario" />
+          <label>Condiciones</label>
+          <textarea rows={2} value={form.condiciones} onChange={set('condiciones')} placeholder="Ej. Es ciego del ojo izquierdo, miedo a ruidos fuertes" />
+
           <div style={{ marginTop: 12 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input

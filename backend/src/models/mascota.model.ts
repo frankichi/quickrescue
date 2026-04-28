@@ -13,6 +13,9 @@ export interface MascotaAttributes {
   microchip: string | null;
   perdida: boolean;
   mensaje_perdida: string | null;
+  alergias: string | null;
+  medicamentos: string | null;
+  condiciones: string | null;
   creado_en: Date;
   actualizado_en: Date;
 }
@@ -27,6 +30,9 @@ type Creacion = Optional<
   | 'microchip'
   | 'perdida'
   | 'mensaje_perdida'
+  | 'alergias'
+  | 'medicamentos'
+  | 'condiciones'
   | 'creado_en'
   | 'actualizado_en'
 >;
@@ -43,6 +49,9 @@ export class Mascota extends Model<MascotaAttributes, Creacion> implements Masco
   declare microchip: string | null;
   declare perdida: boolean;
   declare mensaje_perdida: string | null;
+  declare alergias: string | null;
+  declare medicamentos: string | null;
+  declare condiciones: string | null;
   declare creado_en: Date;
   declare actualizado_en: Date;
 }
@@ -60,6 +69,9 @@ Mascota.init(
     microchip:       { type: DataTypes.STRING(40), allowNull: true },
     perdida:         { type: DataTypes.BOOLEAN,    allowNull: false, defaultValue: false },
     mensaje_perdida: { type: DataTypes.TEXT,       allowNull: true },
+    alergias:        { type: DataTypes.TEXT,       allowNull: true },
+    medicamentos:    { type: DataTypes.TEXT,       allowNull: true },
+    condiciones:     { type: DataTypes.TEXT,       allowNull: true },
     creado_en:       { type: DataTypes.DATE,       allowNull: false, defaultValue: DataTypes.NOW },
     actualizado_en:  { type: DataTypes.DATE,       allowNull: false, defaultValue: DataTypes.NOW },
   },
