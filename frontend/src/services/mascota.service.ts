@@ -1,7 +1,20 @@
 import { api } from './api';
 import { Mascota, ApiResponse } from '../types';
 
-export type MascotaInput = Omit<Mascota, 'id' | 'usuario_id' | 'creado_en' | 'actualizado_en'>;
+/**
+ * Campos que el usuario puede mandar al crear/actualizar una mascota.
+ * `foto` se sube por endpoint aparte (foto.service). `microchip` se
+ * mantiene en DB pero ya no se expone en la UI desde Fase 1.5.
+ */
+export interface MascotaInput {
+  nombre: string;
+  especie: Mascota['especie'];
+  raza?: string | null;
+  color?: string | null;
+  edad_anios?: number | null;
+  perdida?: boolean;
+  mensaje_perdida?: string | null;
+}
 
 export const listar = async (): Promise<Mascota[]> => {
   const { data } = await api.get<ApiResponse<Mascota[]>>('/mascotas');

@@ -24,15 +24,20 @@ export const validarLogin = [
   body('password').notEmpty(),
 ];
 
+// Permisivo a propósito: acepta + espacios y guiones (p.ej. "+51 987 654 321").
+const REGEX_TELEFONO = /^[+0-9 \-()]{6,20}$/;
+
 export const validarActualizarUsuario = [
   body('nombre')   .optional().trim().isLength({ min: 1, max: 80 }),
   body('apellido') .optional().trim().isLength({ min: 1, max: 80 }),
-  body('dni')      .optional().isLength({ min: 6, max: 15 }),
-  body('fecha_nacimiento').optional().isISO8601(),
-  body('foto')     .optional().isString().isLength({ max: 255 }),
-  body('direccion').optional().isString().isLength({ max: 200 }),
-  body('distrito') .optional().isString().isLength({ max: 60 }),
-  body('provincia').optional().isString().isLength({ max: 60 }),
+  body('dni')      .optional({ nullable: true, checkFalsy: true }).isLength({ min: 6, max: 15 }),
+  body('fecha_nacimiento').optional({ nullable: true, checkFalsy: true }).isISO8601(),
+  body('foto')     .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 500 }),
+  body('telefono') .optional({ nullable: true, checkFalsy: true }).isString().matches(REGEX_TELEFONO)
+                   .withMessage('Teléfono inválido'),
+  body('direccion').optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 200 }),
+  body('distrito') .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 60 }),
+  body('provincia').optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 60 }),
 ];
 
 export const validarFamiliar = [

@@ -11,15 +11,13 @@ interface FormState {
   raza: string;
   color: string;
   edad_anios: string;
-  foto: string;
-  microchip: string;
   perdida: boolean;
   mensaje_perdida: string;
 }
 
 const VACIO: FormState = {
   nombre: '', especie: 'perro', raza: '', color: '',
-  edad_anios: '', foto: '', microchip: '',
+  edad_anios: '',
   perdida: false, mensaje_perdida: '',
 };
 
@@ -64,8 +62,6 @@ export default function Mascotas() {
       raza:            form.raza || null,
       color:           form.color || null,
       edad_anios:      form.edad_anios === '' ? null : Number(form.edad_anios),
-      foto:            form.foto || null,
-      microchip:       form.microchip || null,
       perdida:         form.perdida,
       mensaje_perdida: form.mensaje_perdida || null,
     };
@@ -97,8 +93,6 @@ export default function Mascotas() {
       raza: m.raza || '',
       color: m.color || '',
       edad_anios: m.edad_anios?.toString() || '',
-      foto: m.foto || '',
-      microchip: m.microchip || '',
       perdida: m.perdida,
       mensaje_perdida: m.mensaje_perdida || '',
     });
@@ -162,15 +156,9 @@ export default function Mascotas() {
               <input value={form.color} onChange={set('color')} />
             </div>
           </div>
-          <div className="row-2">
-            <div>
-              <label>Edad (años)</label>
-              <input type="number" min="0" max="60" value={form.edad_anios} onChange={set('edad_anios')} />
-            </div>
-            <div>
-              <label>Microchip</label>
-              <input value={form.microchip} onChange={set('microchip')} />
-            </div>
+          <div>
+            <label>Edad (años)</label>
+            <input type="number" min="0" max="60" value={form.edad_anios} onChange={set('edad_anios')} />
           </div>
           <label>Foto (opcional, máx 5MB)</label>
           <input type="file" accept="image/jpeg,image/png,image/webp" onChange={onFotoChange} />

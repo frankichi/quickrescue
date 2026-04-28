@@ -2,7 +2,7 @@ import { Usuario } from '../models';
 import { AppError } from '../utils/AppError';
 
 const CAMPOS_EDITABLES = [
-  'nombre', 'apellido', 'dni', 'foto',
+  'nombre', 'apellido', 'dni', 'foto', 'telefono',
   'fecha_nacimiento', 'direccion', 'distrito', 'provincia',
 ] as const;
 

@@ -10,6 +10,7 @@ export interface UsuarioAttributes {
   password_hash: string;
   foto: string | null;
   onesignal_player_id: string | null;
+  telefono: string | null;
   fecha_nacimiento: Date | null;
   direccion: string | null;
   distrito: string | null;
@@ -21,7 +22,7 @@ export interface UsuarioAttributes {
 
 type Creacion = Optional<
   UsuarioAttributes,
-  'id' | 'dni' | 'foto' | 'onesignal_player_id' | 'fecha_nacimiento' | 'direccion' | 'distrito' |
+  'id' | 'dni' | 'foto' | 'onesignal_player_id' | 'telefono' | 'fecha_nacimiento' | 'direccion' | 'distrito' |
   'provincia' | 'activo' | 'creado_en' | 'actualizado_en'
 >;
 
@@ -34,6 +35,7 @@ export class Usuario extends Model<UsuarioAttributes, Creacion> implements Usuar
   declare password_hash: string;
   declare foto: string | null;
   declare onesignal_player_id: string | null;
+  declare telefono: string | null;
   declare fecha_nacimiento: Date | null;
   declare direccion: string | null;
   declare distrito: string | null;
@@ -59,6 +61,7 @@ Usuario.init(
     password_hash:       { type: DataTypes.STRING(255), allowNull: false },
     foto:                { type: DataTypes.STRING(500), allowNull: true },
     onesignal_player_id: { type: DataTypes.STRING(100), allowNull: true },
+    telefono:            { type: DataTypes.STRING(20),  allowNull: true },
     fecha_nacimiento:    { type: DataTypes.DATEONLY,    allowNull: true },
     direccion:        { type: DataTypes.STRING(200), allowNull: true },
     distrito:         { type: DataTypes.STRING(60),  allowNull: true },

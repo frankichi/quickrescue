@@ -23,66 +23,85 @@ const edadDesde = (fecha: Date | string | null): number | null => {
   return edad >= 0 ? edad : null;
 };
 
-/**
- * Datos públicos que ve un transeúnte cuando escanea un QR.
- * Pensado para ser MÍNIMO: identificar y poder contactar al titular.
- * Nunca incluye email del titular ni password.
- */
-export interface ContactoTitular {
+// ----------------------------------------------------------
+// Tipos del contrato público (lo que ve un transeúnte rescatista)
+// ----------------------------------------------------------
+
+export interface ContactoTitularPublico {
   nombre: string;
   telefono: string | null;
+  email: string | null;
 }
 
-export interface PerfilUsuarioOFamiliar {
-  tipo: 'usuario' | 'familiar';
-  id: number;
-  titular_id: number;
-  nombre: string;
-  apellido: string | null;
-  dni: string | null;
-  foto: string | null;
-  fecha_nacimiento: string | null;
-  edad: number | null;
+/**
+ * Forma unificada de "datos médicos" expuesta al transeúnte. Los campos
+ * irrelevantes para una entidad concreta van en `null`:
+ *  · usuario / familiar → grupo_sanguineo, alergias, enfermedades,
+ *                         operaciones, medicamentos.
+ *  · mascota            → alergias, medicamentos, condiciones.
+ */
+export interface DatosMedicosPublicos {
   grupo_sanguineo: string | null;
-  alergias: string | null;
-  enfermedades: string | null;
-  medicamentos: string | null;
-  direccion: string | null;
-  distrito: string | null;
-  provincia: string | null;
-  contacto: ContactoTitular;
+  alergias:        string | null;
+  enfermedades:    string | null;
+  operaciones:     string | null;
+  medicamentos:    string | null;
+  condiciones:     string | null;
 }
 
-export interface PerfilMascota {
-  tipo: 'mascota';
+const SIN_DATOS_MEDICOS: DatosMedicosPublicos = {
+  grupo_sanguineo: null,
+  alergias:        null,
+  enfermedades:    null,
+  operaciones:     null,
+  medicamentos:    null,
+  condiciones:     null,
+};
+
+interface PerfilPublicoBase {
   id: number;
   titular_id: number;
-  nombre: string;
+  nombre_completo: string;
+  foto_url: string | null;
+  datos_medicos: DatosMedicosPublicos;
+  contacto_titular: ContactoTitularPublico;
+}
+
+export interface PerfilPublicoUsuario extends PerfilPublicoBase {
+  tipo: 'usuario';
+  edad: number | null;
+  dni: string | null;
+}
+
+export interface PerfilPublicoFamiliar extends PerfilPublicoBase {
+  tipo: 'familiar';
+  edad: number | null;
+}
+
+export interface PerfilPublicoMascota extends PerfilPublicoBase {
+  tipo: 'mascota';
   especie: string;
   raza: string | null;
   color: string | null;
-  tamano: string | null;
   edad_anios: number | null;
-  foto: string | null;
-  descripcion: string | null;
   perdida: boolean;
-  distrito: string | null;
-  contacto: ContactoTitular;
+  mensaje_perdida: string | null;
 }
 
-export type PerfilPublico = PerfilUsuarioOFamiliar | PerfilMascota;
+export type PerfilPublico =
+  | PerfilPublicoUsuario
+  | PerfilPublicoFamiliar
+  | PerfilPublicoMascota;
 
-/** El primer familiar registrado actúa como contacto principal del titular. */
-const armarContacto = async (titular: Usuario): Promise<ContactoTitular> => {
-  const principal = await Familiar.findOne({
-    where: { usuario_id: titular.id },
-    order: [['creado_en', 'ASC']],
-  });
-  return {
-    nombre: `${titular.nombre} ${titular.apellido}`,
-    telefono: principal?.telefono ?? null,
-  };
-};
+// ----------------------------------------------------------
+// Helpers internos
+// ----------------------------------------------------------
+
+const armarContacto = (titular: Usuario): ContactoTitularPublico => ({
+  nombre:   `${titular.nombre} ${titular.apellido}`.trim(),
+  telefono: titular.telefono ?? null,
+  email:    titular.email    ?? null,
+});
 
 const requireTitularActivo = async (id: number): Promise<Usuario> => {
   const u = await Usuario.findOne({ where: { id, activo: true } });
@@ -90,9 +109,17 @@ const requireTitularActivo = async (id: number): Promise<Usuario> => {
   return u;
 };
 
+// ----------------------------------------------------------
+// Endpoint público: GET /api/v1/qr/:tipo/:id/publico
+// ----------------------------------------------------------
+
 /**
- * Devuelve el perfil público de un QR. Lanza AppError(404) si no se
- * encuentra o si el titular asociado está inactivo.
+ * Devuelve la información PÚBLICA y SEGURA de un QR. Lo consume el
+ * frontend público (PublicQR.tsx) y la plantilla de email de escaneo.
+ *
+ * Nunca incluye password_hash, ni el DNI de un familiar (sí el del
+ * propio titular si tipo='usuario'). El email del titular SÍ se expone:
+ * permite al rescatista contactar por mail si el teléfono no responde.
  */
 export const obtenerPerfilPublico = async (
   tipo: TipoEscaneo,
@@ -101,27 +128,23 @@ export const obtenerPerfilPublico = async (
   if (tipo === 'usuario') {
     const titular = await requireTitularActivo(id);
     const historial = await HistorialMedico.findOne({ where: { usuario_id: id } });
-    const fechaNac = titular.fecha_nacimiento
-      ? new Date(titular.fecha_nacimiento).toISOString().slice(0, 10)
-      : null;
     return {
       tipo,
       id,
       titular_id: titular.id,
-      nombre: titular.nombre,
-      apellido: titular.apellido,
-      dni: titular.dni,
-      foto: titular.foto,
-      fecha_nacimiento: fechaNac,
+      nombre_completo: `${titular.nombre} ${titular.apellido}`.trim(),
+      foto_url: titular.foto,
       edad: edadDesde(titular.fecha_nacimiento),
-      grupo_sanguineo: historial?.grupo_sanguineo ?? null,
-      alergias:        historial?.alergias        ?? null,
-      enfermedades:    historial?.enfermedades    ?? null,
-      medicamentos:    historial?.medicamentos    ?? null,
-      direccion: titular.direccion,
-      distrito:  titular.distrito,
-      provincia: titular.provincia,
-      contacto: await armarContacto(titular),
+      dni:  titular.dni,
+      datos_medicos: {
+        grupo_sanguineo: historial?.grupo_sanguineo ?? null,
+        alergias:        historial?.alergias        ?? null,
+        enfermedades:    historial?.enfermedades    ?? null,
+        operaciones:     historial?.operaciones     ?? null,
+        medicamentos:    historial?.medicamentos    ?? null,
+        condiciones:     null,
+      },
+      contacto_titular: armarContacto(titular),
     };
   }
 
@@ -129,24 +152,17 @@ export const obtenerPerfilPublico = async (
     const f = await Familiar.findByPk(id);
     if (!f) throw new AppError('QR no válido', 404);
     const titular = await requireTitularActivo(f.usuario_id);
+    // En Commit 1 los datos médicos del familiar aún no existen como columnas
+    // propias (se añaden en Commit 2). Por ahora se devuelven `null`.
     return {
       tipo,
       id,
       titular_id: titular.id,
-      nombre: f.nombre,
-      apellido: null,
-      dni: null,
-      foto: null,
-      fecha_nacimiento: null,
+      nombre_completo: f.nombre,
+      foto_url: f.foto,
       edad: null,
-      grupo_sanguineo: null,
-      alergias: null,
-      enfermedades: null,
-      medicamentos: null,
-      direccion: titular.direccion,
-      distrito:  titular.distrito,
-      provincia: titular.provincia,
-      contacto: await armarContacto(titular),
+      datos_medicos: { ...SIN_DATOS_MEDICOS },
+      contacto_titular: armarContacto(titular),
     };
   }
 
@@ -158,17 +174,17 @@ export const obtenerPerfilPublico = async (
     tipo,
     id,
     titular_id: titular.id,
-    nombre: m.nombre,
+    nombre_completo: m.nombre,
+    foto_url: m.foto,
     especie: m.especie,
-    raza: m.raza,
-    color: m.color,
-    tamano: null,
+    raza:    m.raza,
+    color:   m.color,
     edad_anios: m.edad_anios,
-    foto: m.foto,
-    descripcion: m.mensaje_perdida,
     perdida: m.perdida,
-    distrito: titular.distrito,
-    contacto: await armarContacto(titular),
+    mensaje_perdida: m.mensaje_perdida,
+    // Los campos médicos de mascota se añaden en Commit 3.
+    datos_medicos: { ...SIN_DATOS_MEDICOS },
+    contacto_titular: armarContacto(titular),
   };
 };
 
@@ -226,13 +242,13 @@ const renderHTML = (
          El transeúnte no compartió su ubicación. Solo sabemos que el QR fue escaneado.
        </p>`;
 
-  const fotoSrc = perfil.foto && perfil.foto.length > 0
-    ? `<img src="${perfil.foto}" alt="${perfil.nombre}" width="120" height="120"
+  const fotoSrc = perfil.foto_url && perfil.foto_url.length > 0
+    ? `<img src="${perfil.foto_url}" alt="${perfil.nombre_completo}" width="120" height="120"
             style="border-radius:60px;object-fit:cover;display:block;margin:0 auto;border:3px solid #5BA0D0;" />`
     : '';
 
   const reemplazos: Record<string, string> = {
-    '{{NOMBRE}}': perfil.nombre.replace(/</g, '&lt;'),
+    '{{NOMBRE}}': perfil.nombre_completo.replace(/</g, '&lt;'),
     '{{TIPO_LABEL}}': tipoLabel,
     '{{FECHA}}': fecha,
     '{{UBICACION_BLOQUE}}': ubicacionBloque,
@@ -289,7 +305,7 @@ export const registrarEscaneo = async (datos: DatosEscaneo) => {
     });
     enviarEmail({
       to: titular.email,
-      subject: `Alguien escaneó el QR de ${perfil.nombre}`,
+      subject: `Alguien escaneó el QR de ${perfil.nombre_completo}`,
       html,
     }).catch((e) => logger.error('Error enviando email de escaneo', e));
   }

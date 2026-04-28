@@ -4,7 +4,8 @@ export interface Usuario {
   apellido: string;
   dni: string | null;
   email: string;
-  foto?: string | null;
+  foto: string | null;
+  telefono: string | null;
   fecha_nacimiento: string | null;
   direccion: string | null;
   distrito: string | null;
@@ -19,7 +20,7 @@ export interface Familiar {
   telefono: string;
   email: string | null;
   relacion: string;
-  foto?: string | null;
+  foto: string | null;
   creado_en: string;
 }
 
@@ -33,7 +34,7 @@ export interface Mascota {
   raza: string | null;
   color: string | null;
   edad_anios: number | null;
-  foto?: string | null;
+  foto: string | null;
   microchip: string | null;
   perdida: boolean;
   mensaje_perdida: string | null;
@@ -65,49 +66,59 @@ export interface Ubicacion {
 
 export type TipoQR = 'usuario' | 'familiar' | 'mascota';
 
-export interface ContactoTitular {
+export interface ContactoTitularPublico {
   nombre: string;
   telefono: string | null;
+  email: string | null;
 }
 
-export interface PerfilPublicoUsuario {
-  tipo: 'usuario' | 'familiar';
-  id: number;
-  titular_id: number;
-  nombre: string;
-  apellido: string | null;
-  dni: string | null;
-  foto?: string | null;
-  fecha_nacimiento: string | null;
-  edad: number | null;
+/**
+ * Datos médicos en el QR público. Forma única para personas y mascotas;
+ * los campos no aplicables a un tipo concreto vienen en `null`.
+ */
+export interface DatosMedicosPublicos {
   grupo_sanguineo: string | null;
   alergias: string | null;
   enfermedades: string | null;
+  operaciones: string | null;
   medicamentos: string | null;
-  direccion: string | null;
-  distrito: string | null;
-  provincia: string | null;
-  contacto: ContactoTitular;
+  condiciones: string | null;
 }
 
-export interface PerfilPublicoMascota {
-  tipo: 'mascota';
+interface PerfilPublicoBase {
   id: number;
   titular_id: number;
-  nombre: string;
+  nombre_completo: string;
+  foto_url: string | null;
+  datos_medicos: DatosMedicosPublicos;
+  contacto_titular: ContactoTitularPublico;
+}
+
+export interface PerfilPublicoUsuario extends PerfilPublicoBase {
+  tipo: 'usuario';
+  edad: number | null;
+  dni: string | null;
+}
+
+export interface PerfilPublicoFamiliar extends PerfilPublicoBase {
+  tipo: 'familiar';
+  edad: number | null;
+}
+
+export interface PerfilPublicoMascota extends PerfilPublicoBase {
+  tipo: 'mascota';
   especie: string;
   raza: string | null;
   color: string | null;
-  tamano: string | null;
   edad_anios: number | null;
-  foto?: string | null;
-  descripcion: string | null;
   perdida: boolean;
-  distrito: string | null;
-  contacto: ContactoTitular;
+  mensaje_perdida: string | null;
 }
 
-export type PerfilPublico = PerfilPublicoUsuario | PerfilPublicoMascota;
+export type PerfilPublico =
+  | PerfilPublicoUsuario
+  | PerfilPublicoFamiliar
+  | PerfilPublicoMascota;
 
 export interface Escaneo {
   id: number;

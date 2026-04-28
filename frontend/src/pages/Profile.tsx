@@ -108,6 +108,16 @@ export default function Profile() {
           </div>
         </div>
 
+        <label>Teléfono (lo verá el rescatista al escanear el QR)</label>
+        <input
+          type="tel"
+          inputMode="tel"
+          placeholder="+51 987 654 321"
+          pattern="[+0-9 \-()]{6,20}"
+          value={form.telefono || ''}
+          onChange={set('telefono')}
+        />
+
         <label>Dirección</label>
         <input value={form.direccion || ''} onChange={set('direccion')} />
 

@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import * as qrSvc from '../services/qr.service';
-import { PerfilPublico, TipoQR } from '../types';
+import {
+  PerfilPublico,
+  PerfilPublicoMascota,
+  PerfilPublicoUsuario,
+  PerfilPublicoFamiliar,
+  TipoQR,
+} from '../types';
 import { errorMessage } from '../services/api';
 
 const TIPOS_VALIDOS: TipoQR[] = ['usuario', 'familiar', 'mascota'];
@@ -78,27 +84,32 @@ export default function PublicQR() {
     );
   }
 
-  const tel = perfil.contacto.telefono;
-  const esMascota = perfil.tipo === 'mascota';
+  const tel   = perfil.contacto_titular.telefono;
+  const email = perfil.contacto_titular.email;
 
   return (
     <Layout>
       <div className="pq-card">
-        <Foto src={perfil.foto} alt={perfil.nombre} />
+        <Foto src={perfil.foto_url} alt={perfil.nombre_completo} />
 
-        {esMascota
+        {perfil.tipo === 'mascota'
           ? <BloqueMascota perfil={perfil} />
-          : <BloqueUsuarioOFamiliar perfil={perfil} />}
+          : <BloquePersona perfil={perfil} />}
+
+        <DatosMedicos perfil={perfil} />
 
         {/* CONTACTO TITULAR + BOTONES */}
         <section className="pq-section">
           <h3>Contacto del titular</h3>
           <p style={{ marginBottom: 12 }}>
-            <strong>{perfil.contacto.nombre}</strong>
+            <strong>{perfil.contacto_titular.nombre}</strong>
           </p>
           {tel
             ? <a href={`tel:${tel}`} className="pq-btn-llamar">📞 Llamar al titular</a>
             : <p style={{ color: '#7F8C8D' }}>El titular no tiene teléfono de contacto cargado.</p>}
+          {email && (
+            <a href={`mailto:${email}`} className="pq-btn-email">✉️ Escribir al titular</a>
+          )}
 
           {notificado
             ? <div className="pq-notificado">✓ Notificamos al titular</div>
@@ -133,42 +144,27 @@ function Foto({ src, alt }: { src: string | null | undefined; alt: string }) {
   );
 }
 
-function BloqueUsuarioOFamiliar({ perfil }: { perfil: Extract<PerfilPublico, { tipo: 'usuario' | 'familiar' }> }) {
-  const tieneAlgunDatoMedico = perfil.grupo_sanguineo || perfil.alergias || perfil.enfermedades || perfil.medicamentos;
-  const nombreCompleto = perfil.apellido ? `${perfil.nombre} ${perfil.apellido}` : perfil.nombre;
+function BloquePersona({ perfil }: { perfil: PerfilPublicoUsuario | PerfilPublicoFamiliar }) {
+  const dni = perfil.tipo === 'usuario' ? perfil.dni : null;
   return (
     <>
-      <h1 className="pq-nombre">{nombreCompleto}</h1>
-      {perfil.dni && <p className="pq-meta">DNI: {perfil.dni}</p>}
+      <h1 className="pq-nombre">{perfil.nombre_completo}</h1>
+      {dni != null && <p className="pq-meta">DNI: {dni}</p>}
       {perfil.edad != null && <p className="pq-meta">{perfil.edad} años</p>}
-
-      {tieneAlgunDatoMedico && (
-        <section className="pq-section">
-          <h3>Información médica</h3>
-          {perfil.grupo_sanguineo && (
-            <div className="pq-grupo-sanguineo">
-              <span className="pq-gs-label">Grupo sanguíneo</span>
-              <span className="pq-gs-badge">{perfil.grupo_sanguineo}</span>
-            </div>
-          )}
-          {perfil.alergias     && <CardMed icono="⚠️" titulo="Alergias"     valor={perfil.alergias} />}
-          {perfil.enfermedades && <CardMed icono="🩺" titulo="Enfermedades" valor={perfil.enfermedades} />}
-          {perfil.medicamentos && <CardMed icono="💊" titulo="Medicamentos" valor={perfil.medicamentos} />}
-        </section>
-      )}
     </>
   );
 }
 
-function BloqueMascota({ perfil }: { perfil: Extract<PerfilPublico, { tipo: 'mascota' }> }) {
+function BloqueMascota({ perfil }: { perfil: PerfilPublicoMascota }) {
   const partes: string[] = [];
-  if (perfil.distrito) partes.push(`Soy de ${perfil.distrito}`);
-  if (perfil.edad_anios != null) partes.push(`tengo ${perfil.edad_anios} año${perfil.edad_anios === 1 ? '' : 's'}`);
-  const presentacion = `¡Hola! Me llamo ${perfil.nombre}.${partes.length > 0 ? ' ' + partes.join(', ') + '.' : ''}`;
+  if (perfil.edad_anios != null) {
+    partes.push(`tengo ${perfil.edad_anios} año${perfil.edad_anios === 1 ? '' : 's'}`);
+  }
+  const presentacion = `¡Hola! Me llamo ${perfil.nombre_completo}.${partes.length > 0 ? ' ' + partes.join(', ') + '.' : ''}`;
 
   return (
     <>
-      <h1 className="pq-nombre">{perfil.nombre}</h1>
+      <h1 className="pq-nombre">{perfil.nombre_completo}</h1>
       <p className="pq-meta">
         {perfil.especie}{perfil.raza ? ` • ${perfil.raza}` : ''}
       </p>
@@ -181,16 +177,39 @@ function BloqueMascota({ perfil }: { perfil: Extract<PerfilPublico, { tipo: 'mas
 
       <section className="pq-section">
         <p className="pq-presentacion">{presentacion}</p>
-        {perfil.descripcion && <p className="pq-presentacion">{perfil.descripcion}</p>}
+        {perfil.mensaje_perdida && <p className="pq-presentacion">{perfil.mensaje_perdida}</p>}
         {perfil.color && <p className="pq-meta">Color: {perfil.color}</p>}
       </section>
     </>
   );
 }
 
-function CardMed({ icono, titulo, valor }: { icono: string; titulo: string; valor: string }) {
+function DatosMedicos({ perfil }: { perfil: PerfilPublico }) {
+  const m = perfil.datos_medicos;
+  const algo = m.grupo_sanguineo || m.alergias || m.enfermedades
+            || m.operaciones || m.medicamentos || m.condiciones;
+  if (!algo) return null;
   return (
-    <div className="pq-card-med">
+    <section className="pq-section">
+      <h3>Información médica</h3>
+      {m.grupo_sanguineo && (
+        <div className="pq-grupo-sanguineo">
+          <span className="pq-gs-label">Grupo sanguíneo</span>
+          <span className="pq-gs-badge">{m.grupo_sanguineo}</span>
+        </div>
+      )}
+      {m.alergias     && <CardMed icono="⚠️" titulo="Alergias"     valor={m.alergias}     destacado />}
+      {m.enfermedades && <CardMed icono="🩺" titulo="Enfermedades" valor={m.enfermedades} />}
+      {m.condiciones  && <CardMed icono="🐾" titulo="Condiciones"  valor={m.condiciones} />}
+      {m.medicamentos && <CardMed icono="💊" titulo="Medicamentos" valor={m.medicamentos} />}
+      {m.operaciones  && <CardMed icono="🏥" titulo="Operaciones"  valor={m.operaciones} />}
+    </section>
+  );
+}
+
+function CardMed({ icono, titulo, valor, destacado }: { icono: string; titulo: string; valor: string; destacado?: boolean }) {
+  return (
+    <div className={destacado ? 'pq-card-med pq-card-med-alerta' : 'pq-card-med'}>
       <div className="pq-card-med-titulo"><span>{icono}</span> {titulo}</div>
       <div className="pq-card-med-valor">{valor}</div>
     </div>
@@ -243,10 +262,13 @@ function PublicStyles() {
       .pq-gs-badge { background: #5BA0D0; color: white; font-size: 22px; font-weight: 700; padding: 6px 16px; border-radius: 8px; }
 
       .pq-card-med { background: #F8F9FA; padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #5BA0D0; }
+      .pq-card-med-alerta { background: #FDECEA; border-left-color: #E74C3C; }
       .pq-card-med-titulo { font-size: 13px; color: #7F8C8D; margin-bottom: 2px; }
+      .pq-card-med-alerta .pq-card-med-titulo { color: #C0392B; }
       .pq-card-med-valor { font-size: 15px; color: #2C3E50; }
 
       .pq-btn-llamar { display: block; background: #27AE60; color: white; text-align: center; text-decoration: none; padding: 18px; border-radius: 10px; font-size: 20px; font-weight: 700; margin: 8px 0; }
+      .pq-btn-email { display: block; background: #5BA0D0; color: white; text-align: center; text-decoration: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; margin: 8px 0; }
       .pq-btn-notificar { width: 100%; padding: 14px; background: #5BA0D0; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px; }
       .pq-btn-notificar:disabled { opacity: .6; cursor: default; }
 

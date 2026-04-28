@@ -32,6 +32,7 @@ CREATE TABLE usuarios (
     password_hash      VARCHAR(255)   NOT NULL,            -- bcrypt
     foto                 VARCHAR(500) DEFAULT NULL,        -- URL Cloudinary
     onesignal_player_id  VARCHAR(100) DEFAULT NULL,        -- Push ID Fase 2
+    telefono             VARCHAR(20)  DEFAULT NULL,        -- Para "Llamar al titular" desde QR público
     fecha_nacimiento   DATE           DEFAULT NULL,
     direccion          VARCHAR(200)   DEFAULT NULL,
     distrito           VARCHAR(60)    DEFAULT NULL,

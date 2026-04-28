@@ -16,6 +16,9 @@ build/
 
 # --- TypeScript ---
 *.tsbuildinfo
+# tsc -b emite .js/.d.ts junto a vite.config.ts cuando es composite
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # --- Editores ---
 .vscode/

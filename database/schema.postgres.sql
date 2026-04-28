@@ -27,6 +27,7 @@ CREATE TABLE usuarios (
     password_hash      VARCHAR(255) NOT NULL,
     foto                VARCHAR(500),
     onesignal_player_id VARCHAR(100),
+    telefono           VARCHAR(20),
     fecha_nacimiento   DATE,
     direccion          VARCHAR(200),
     distrito           VARCHAR(60),
