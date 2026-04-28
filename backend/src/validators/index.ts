@@ -135,3 +135,10 @@ export const validarCompra = [
 export const validarLimitQuery = [
   query('limit').optional().isInt({ min: 1, max: 200 }),
 ];
+
+// El SDK v16 de OneSignal genera un UUID v4 como subscription_id.
+export const validarSubscriptionOneSignal = [
+  body('subscription_id')
+    .isString().withMessage('subscription_id requerido')
+    .isUUID(4).withMessage('subscription_id debe ser UUID v4'),
+];

@@ -48,4 +48,9 @@ export const env = {
     apiKey:    optional('CLOUDINARY_API_KEY', ''),
     apiSecret: optional('CLOUDINARY_API_SECRET', ''),
   },
+
+  onesignal: {
+    appId:      optional('ONESIGNAL_APP_ID', ''),
+    restApiKey: optional('ONESIGNAL_REST_API_KEY', ''),
+  },
 };
