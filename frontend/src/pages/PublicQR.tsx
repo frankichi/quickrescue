@@ -123,7 +123,7 @@ export default function PublicQR() {
 
 // ----------------------- helpers de presentación -----------------------
 
-function Foto({ src, alt }: { src: string | null; alt: string }) {
+function Foto({ src, alt }: { src: string | null | undefined; alt: string }) {
   return (
     <div className="pq-foto-wrap">
       {src
