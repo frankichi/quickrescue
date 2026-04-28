@@ -40,18 +40,38 @@ export const validarActualizarUsuario = [
   body('provincia').optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 60 }),
 ];
 
+// Reglas comunes para los campos extendidos del familiar (todas opcionales).
+const reglasFamiliarExtendido = [
+  body('apellido')        .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 80 }),
+  body('dni')             .optional({ nullable: true, checkFalsy: true }).isString().isLength({ min: 6, max: 15 }),
+  body('fecha_nacimiento').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Formato YYYY-MM-DD'),
+  body('foto')            .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 500 }),
+  body('direccion')       .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 200 }),
+  body('distrito')        .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 60 }),
+  body('provincia')       .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 60 }),
+  body('grupo_sanguineo') .optional({ nullable: true, checkFalsy: true }).isString().isLength({ max: 5 }),
+  body('alergias')        .optional({ nullable: true, checkFalsy: true }).isString(),
+  body('enfermedades')    .optional({ nullable: true, checkFalsy: true }).isString(),
+  body('operaciones')     .optional({ nullable: true, checkFalsy: true }).isString(),
+  body('medicamentos')    .optional({ nullable: true, checkFalsy: true }).isString(),
+];
+
 export const validarFamiliar = [
   body('nombre')   .trim().notEmpty().isLength({ max: 120 }),
-  body('telefono') .trim().notEmpty().isLength({ max: 20 }),
-  body('email')    .optional({ checkFalsy: true }).isEmail().normalizeEmail(),
+  body('telefono') .trim().notEmpty().isLength({ max: 20 }).matches(REGEX_TELEFONO)
+                   .withMessage('Teléfono inválido'),
+  body('email')    .optional({ nullable: true, checkFalsy: true }).isEmail().normalizeEmail(),
   body('relacion') .trim().notEmpty().isLength({ max: 40 }),
+  ...reglasFamiliarExtendido,
 ];
 
 export const validarFamiliarParcial = [
   body('nombre')   .optional().trim().isLength({ min: 1, max: 120 }),
-  body('telefono') .optional().trim().isLength({ min: 1, max: 20 }),
-  body('email')    .optional({ checkFalsy: true }).isEmail().normalizeEmail(),
+  body('telefono') .optional().trim().isLength({ min: 1, max: 20 }).matches(REGEX_TELEFONO)
+                   .withMessage('Teléfono inválido'),
+  body('email')    .optional({ nullable: true, checkFalsy: true }).isEmail().normalizeEmail(),
   body('relacion') .optional().trim().isLength({ min: 1, max: 40 }),
+  ...reglasFamiliarExtendido,
 ];
 
 const ESPECIES_MASCOTA = ['perro', 'gato', 'otro'];

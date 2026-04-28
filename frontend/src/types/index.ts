@@ -17,10 +17,21 @@ export interface Familiar {
   id: number;
   usuario_id: number;
   nombre: string;
+  apellido: string | null;
+  dni: string | null;
+  fecha_nacimiento: string | null;
   telefono: string;
   email: string | null;
   relacion: string;
   foto: string | null;
+  direccion: string | null;
+  distrito: string | null;
+  provincia: string | null;
+  grupo_sanguineo: string | null;
+  alergias: string | null;
+  enfermedades: string | null;
+  operaciones: string | null;
+  medicamentos: string | null;
   creado_en: string;
 }
 

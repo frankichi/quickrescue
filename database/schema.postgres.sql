@@ -55,14 +55,25 @@ CREATE TRIGGER trg_usuarios_actualizado
 --  FAMILIARES
 -- --------------------------------------------------------
 CREATE TABLE familiares (
-    id           SERIAL PRIMARY KEY,
-    usuario_id   INTEGER      NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    nombre       VARCHAR(120) NOT NULL,
-    telefono     VARCHAR(20)  NOT NULL,
-    email        VARCHAR(120),
-    relacion     VARCHAR(40)  NOT NULL,
-    foto         VARCHAR(500),
-    creado_en    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id               SERIAL PRIMARY KEY,
+    usuario_id       INTEGER      NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    nombre           VARCHAR(120) NOT NULL,
+    apellido         VARCHAR(80),
+    dni              VARCHAR(15),
+    fecha_nacimiento DATE,
+    telefono         VARCHAR(20)  NOT NULL,
+    email            VARCHAR(120),
+    relacion         VARCHAR(40)  NOT NULL,
+    foto             VARCHAR(500),
+    direccion        VARCHAR(200),
+    distrito         VARCHAR(60),
+    provincia        VARCHAR(60),
+    grupo_sanguineo  VARCHAR(5),
+    alergias         TEXT,
+    enfermedades     TEXT,
+    operaciones      TEXT,
+    medicamentos     TEXT,
+    creado_en        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX ix_familiares_usuario ON familiares(usuario_id);
 

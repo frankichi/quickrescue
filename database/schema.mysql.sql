@@ -51,14 +51,25 @@ CREATE TABLE usuarios (
 --  Reciben emails al disparar SOS.
 -- --------------------------------------------------------
 CREATE TABLE familiares (
-    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    usuario_id   INT UNSIGNED NOT NULL,
-    nombre       VARCHAR(120) NOT NULL,
-    telefono     VARCHAR(20)  NOT NULL,
-    email        VARCHAR(120) DEFAULT NULL,
-    relacion     VARCHAR(40)  NOT NULL,                    -- "Hijo", "Esposa", etc.
-    foto         VARCHAR(500) DEFAULT NULL,
-    creado_en    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id               INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    usuario_id       INT UNSIGNED NOT NULL,
+    nombre           VARCHAR(120) NOT NULL,
+    apellido         VARCHAR(80)  DEFAULT NULL,
+    dni              VARCHAR(15)  DEFAULT NULL,
+    fecha_nacimiento DATE         DEFAULT NULL,
+    telefono         VARCHAR(20)  NOT NULL,
+    email            VARCHAR(120) DEFAULT NULL,
+    relacion         VARCHAR(40)  NOT NULL,                    -- "Hijo", "Esposa", etc.
+    foto             VARCHAR(500) DEFAULT NULL,
+    direccion        VARCHAR(200) DEFAULT NULL,
+    distrito         VARCHAR(60)  DEFAULT NULL,
+    provincia        VARCHAR(60)  DEFAULT NULL,
+    grupo_sanguineo  VARCHAR(5)   DEFAULT NULL,
+    alergias         TEXT         DEFAULT NULL,
+    enfermedades     TEXT         DEFAULT NULL,
+    operaciones      TEXT         DEFAULT NULL,
+    medicamentos     TEXT         DEFAULT NULL,
+    creado_en        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY ix_familiares_usuario (usuario_id),
     CONSTRAINT fk_familiares_usuario

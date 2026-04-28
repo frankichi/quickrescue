@@ -129,6 +129,17 @@ button:disabled { opacity: 0.6; cursor: wait; }
 
 /* ---- Forms ---- */
 .form-card { background:#fff; padding: 24px; border-radius: 10px; box-shadow: var(--shadow); max-width: 600px; }
+.form-section-title {
+  margin: 24px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid #E3E9EF;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.form-section-title:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
 .row-2 { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
 @media (max-width: 600px) {
   .row-2 { grid-template-columns: 1fr; }

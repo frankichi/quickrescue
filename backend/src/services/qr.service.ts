@@ -152,16 +152,22 @@ export const obtenerPerfilPublico = async (
     const f = await Familiar.findByPk(id);
     if (!f) throw new AppError('QR no válido', 404);
     const titular = await requireTitularActivo(f.usuario_id);
-    // En Commit 1 los datos médicos del familiar aún no existen como columnas
-    // propias (se añaden en Commit 2). Por ahora se devuelven `null`.
+    const nombreCompleto = f.apellido ? `${f.nombre} ${f.apellido}` : f.nombre;
     return {
       tipo,
       id,
       titular_id: titular.id,
-      nombre_completo: f.nombre,
+      nombre_completo: nombreCompleto,
       foto_url: f.foto,
-      edad: null,
-      datos_medicos: { ...SIN_DATOS_MEDICOS },
+      edad: edadDesde(f.fecha_nacimiento),
+      datos_medicos: {
+        grupo_sanguineo: f.grupo_sanguineo ?? null,
+        alergias:        f.alergias        ?? null,
+        enfermedades:    f.enfermedades    ?? null,
+        operaciones:     f.operaciones     ?? null,
+        medicamentos:    f.medicamentos    ?? null,
+        condiciones:     null,
+      },
       contacto_titular: armarContacto(titular),
     };
   }
