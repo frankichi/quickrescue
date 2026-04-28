@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Usuario, AuthData } from '../types';
 import * as authService from '../services/auth.service';
+import { useOneSignal } from '../hooks/useOneSignal';
+import { promptearYRegistrar, cerrarSesionPush } from '../services/onesignal.service';
 
 interface AuthContextValue {
   usuario: Usuario | null;
@@ -16,6 +18,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [cargando, setCargando] = useState(true);
 
+  // Inicializa el SDK de OneSignal una sola vez al montar la app.
+  useOneSignal();
+
   // Hidratar sesión desde localStorage al montar
   useEffect(() => {
     const stored = localStorage.getItem('qr_usuario');
@@ -29,6 +34,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('qr_token', data.token);
     localStorage.setItem('qr_usuario', JSON.stringify(data.usuario));
     setUsuario(data.usuario);
+    // Promptear push tras un login exitoso. Best-effort: no bloquea el login.
+    promptearYRegistrar(data.usuario.id).catch(() => { /* ya logueado dentro */ });
   };
 
   const login = async (email: string, password: string) => {
@@ -42,6 +49,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    // No bloqueamos el logout local en la respuesta del backend.
+    cerrarSesionPush().catch(() => { /* best-effort */ });
     localStorage.removeItem('qr_token');
     localStorage.removeItem('qr_usuario');
     setUsuario(null);

@@ -3,10 +3,15 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as familiarSvc  from '../services/familiar.service';
 import * as ubicacionSvc from '../services/ubicacion.service';
+import {
+  obtenerSubscriptionId,
+  promptearYRegistrar,
+} from '../services/onesignal.service';
 
 export default function Dashboard() {
   const { usuario } = useAuth();
   const [stats, setStats] = useState({ familiares: 0, ubicaciones: 0, sosTotal: 0 });
+  const [pushActivo, setPushActivo] = useState<boolean>(() => !!obtenerSubscriptionId());
 
   useEffect(() => {
     Promise.all([familiarSvc.listar(), ubicacionSvc.listar(200)])
@@ -20,9 +25,45 @@ export default function Dashboard() {
       .catch(() => { /* dashboard tolera fallos */ });
   }, []);
 
+  // Refresca el indicador cuando el SDK termine de inicializarse o cambie la suscripción.
+  useEffect(() => {
+    const t = setInterval(() => {
+      const id = obtenerSubscriptionId();
+      setPushActivo((prev) => (prev !== !!id ? !!id : prev));
+    }, 2000);
+    return () => clearInterval(t);
+  }, []);
+
+  const activarPush = async () => {
+    if (!usuario) return;
+    const id = await promptearYRegistrar(usuario.id);
+    setPushActivo(!!id);
+  };
+
   return (
     <div>
       <h1 className="page-title">Hola, {usuario?.nombre} 👋</h1>
+
+      {pushActivo ? (
+        <p style={{
+          background: '#e8f5e9', color: '#1b5e20', padding: '8px 12px',
+          borderRadius: 6, display: 'inline-block', margin: '0 0 16px',
+          fontSize: 14,
+        }}>
+          🔔 Notificaciones activadas
+        </p>
+      ) : (
+        <button
+          onClick={activarPush}
+          style={{
+            background: '#fff3cd', color: '#7b5f00', padding: '8px 14px',
+            border: '1px solid #ffc107', borderRadius: 6, margin: '0 0 16px',
+            fontSize: 14, cursor: 'pointer',
+          }}
+        >
+          🔕 Activar notificaciones
+        </button>
+      )}
 
       <div className="cards">
         <Link to="/familiares" className="card" style={{textDecoration:'none', color:'inherit'}}>
