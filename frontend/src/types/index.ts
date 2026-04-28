@@ -4,7 +4,7 @@ export interface Usuario {
   apellido: string;
   dni: string | null;
   email: string;
-  foto: string | null;
+  foto?: string | null;
   fecha_nacimiento: string | null;
   direccion: string | null;
   distrito: string | null;
@@ -19,7 +19,7 @@ export interface Familiar {
   telefono: string;
   email: string | null;
   relacion: string;
-  foto: string | null;
+  foto?: string | null;
   creado_en: string;
 }
 
@@ -33,7 +33,7 @@ export interface Mascota {
   raza: string | null;
   color: string | null;
   edad_anios: number | null;
-  foto: string | null;
+  foto?: string | null;
   microchip: string | null;
   perdida: boolean;
   mensaje_perdida: string | null;
@@ -77,7 +77,7 @@ export interface PerfilPublicoUsuario {
   nombre: string;
   apellido: string | null;
   dni: string | null;
-  foto: string | null;
+  foto?: string | null;
   fecha_nacimiento: string | null;
   edad: number | null;
   grupo_sanguineo: string | null;
@@ -100,7 +100,7 @@ export interface PerfilPublicoMascota {
   color: string | null;
   tamano: string | null;
   edad_anios: number | null;
-  foto: string | null;
+  foto?: string | null;
   descripcion: string | null;
   perdida: boolean;
   distrito: string | null;
