@@ -172,11 +172,7 @@ export default function Mascotas() {
               <input value={form.microchip} onChange={set('microchip')} />
             </div>
           </div>
-          <div>
-            <label>Foto (URL — opcional, también puedes subir abajo)</label>
-            <input value={form.foto} onChange={set('foto')} placeholder="https://…" />
-          </div>
-          <label>Subir foto desde tu dispositivo (máx 5MB)</label>
+          <label>Foto (opcional, máx 5MB)</label>
           <input type="file" accept="image/jpeg,image/png,image/webp" onChange={onFotoChange} />
           <div style={{ marginTop: 12 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
